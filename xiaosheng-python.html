@@ -1,0 +1,1572 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>小生Python</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --green:#58cc02; --green-dark:#46a302; --green-soft:#d7ffb8;
+  --blue:#1cb0f6; --blue-dark:#1899d6; --blue-soft:#ddf4ff;
+  --yellow:#ffc800; --yellow-dark:#e0a800; --yellow-soft:#fff3c4;
+  --red:#ff4b4b; --red-dark:#d63a3a; --red-soft:#ffdfe0;
+  --purple:#a560e8; --purple-dark:#8a45cc; --purple-soft:#f0e2ff;
+  --bg:#f7f9f4; --surface:#ffffff; --surface2:#f1f4ec;
+  --ink:#2b2b2b; --ink-soft:#6b7263; --line:#e3e8da;
+  --code-bg:#263238; --code-ink:#e8f5e9;
+  --shadow:0 2px 0 rgba(0,0,0,.04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#171a15; --surface:#22261f; --surface2:#2a2f26;
+    --ink:#f2f4ec; --ink-soft:#a9b39e; --line:#39402f;
+    --green-soft:#2c4420; --blue-soft:#17394a; --yellow-soft:#4a3d10;
+    --red-soft:#4a2226; --purple-soft:#38244d;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:"Nunito","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink);
+  min-height:100dvh;
+}
+button,input,textarea{font-family:inherit;}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
+.app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;position:relative;}
+@media(min-width:760px){
+  .app{border-left:2px solid var(--line);border-right:2px solid var(--line);background:var(--bg);}
+}
+.view{display:none;flex:1;flex-direction:column;}
+.view.active{display:flex;}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:none;cursor:pointer;border-radius:14px;
+  font-weight:800;font-size:17px;letter-spacing:.4px;
+  padding:13px 22px;min-height:52px;color:#fff;background:var(--green);
+  box-shadow:0 4px 0 var(--green-dark);transition:transform .06s, box-shadow .06s, filter .15s;
+  text-decoration:none;user-select:none;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--green-dark);}
+.btn.blue{background:var(--blue);box-shadow:0 4px 0 var(--blue-dark);}
+.btn.blue:active{box-shadow:0 1px 0 var(--blue-dark);}
+.btn.yellow{background:var(--yellow);color:#5c4300;box-shadow:0 4px 0 var(--yellow-dark);}
+.btn.yellow:active{box-shadow:0 1px 0 var(--yellow-dark);}
+.btn.red{background:var(--red);box-shadow:0 4px 0 var(--red-dark);}
+.btn.red:active{box-shadow:0 1px 0 var(--red-dark);}
+.btn.purple{background:var(--purple);box-shadow:0 4px 0 var(--purple-dark);}
+.btn.purple:active{box-shadow:0 1px 0 var(--purple-dark);}
+.btn.ghost{background:var(--surface);color:var(--ink-soft);border:2px solid var(--line);box-shadow:0 4px 0 var(--line);}
+.btn.ghost:active{box-shadow:0 1px 0 var(--line);}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn.block{width:100%;}
+.btn.small{min-height:44px;padding:9px 16px;font-size:15px;border-radius:12px;}
+
+/* ---------- welcome ---------- */
+#view-welcome{padding:28px 22px 32px;justify-content:center;}
+.hero-snake{width:118px;height:118px;margin:0 auto 6px;display:block;}
+.welcome h1{font-size:40px;font-weight:900;text-align:center;margin:8px 0 2px;letter-spacing:1px;}
+.welcome .tagline{text-align:center;color:var(--ink-soft);font-weight:700;font-size:16px;margin:0 0 6px;line-height:1.55;}
+.welcome .tagline b{color:var(--green-dark);}
+.feature-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0 22px;}
+.feature-chip{background:var(--surface);border:2px solid var(--line);border-radius:999px;padding:7px 13px;font-weight:800;font-size:13.5px;color:var(--ink-soft);}
+.feature-chip span{color:var(--ink);}
+.name-card{background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:20px 18px;box-shadow:var(--shadow);}
+.name-card label{display:block;font-weight:900;font-size:15px;margin-bottom:10px;}
+.name-input{
+  width:100%;border:2px solid var(--line);border-radius:12px;background:var(--surface2);
+  padding:13px 14px;font-size:17px;font-weight:700;color:var(--ink);outline:none;min-height:52px;
+}
+.name-input:focus{border-color:var(--blue);}
+.name-err{color:var(--red);font-weight:800;font-size:14px;min-height:20px;margin:6px 2px 2px;}
+.roadmap{margin-top:20px;background:var(--surface);border:2px solid var(--line);border-radius:20px;padding:16px 18px;}
+.roadmap h3{margin:0 0 10px;font-size:15px;font-weight:900;}
+.roadmap ol{margin:0;padding-left:20px;color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.9;}
+.roadmap ol b{color:var(--ink);}
+.roadmap .now{color:var(--green-dark);font-weight:900;}
+
+/* ---------- top stats bar ---------- */
+.statsbar{
+  background:var(--bg);flex:none;
+  display:flex;align-items:center;gap:10px;padding:12px 16px 10px;
+  border-bottom:2px solid var(--line);
+}
+.stat{display:flex;align-items:center;gap:5px;font-weight:900;font-size:15.5px;min-height:36px;}
+.stat svg{width:21px;height:21px;flex:none;}
+.stat.xp{color:var(--yellow-dark);}
+.stat.coin{color:#e8a100;}
+.stat.heart{color:var(--red);}
+.stat.level{margin-left:auto;background:var(--blue-soft);color:var(--blue-dark);border-radius:999px;padding:5px 12px;font-size:14px;}
+@media (prefers-color-scheme: dark){ .stat.level{color:#7fd4ff;} .stat.xp{color:var(--yellow);} }
+
+/* ---------- map ---------- */
+.map-head{padding:18px 20px 4px;}
+.map-head .chapter-tag{display:inline-block;background:var(--green);color:#fff;font-weight:900;font-size:13px;border-radius:8px;padding:4px 10px;letter-spacing:1px;}
+.map-head h2{margin:10px 0 4px;font-size:26px;font-weight:900;}
+.map-head p{margin:0;color:var(--ink-soft);font-weight:700;font-size:14.5px;line-height:1.6;}
+.xp-progress{margin:16px 20px 4px;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:13px 16px;}
+.xp-progress .row{display:flex;justify-content:space-between;font-weight:900;font-size:14px;margin-bottom:8px;}
+.xp-progress .row span:last-child{color:var(--ink-soft);}
+.bar{height:14px;border-radius:999px;background:var(--surface2);overflow:hidden;border:2px solid var(--line);}
+.bar > i{display:block;height:100%;background:var(--yellow);border-radius:999px;transition:width .5s ease;}
+.path{position:relative;padding:26px 0 10px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.path::before{content:"";position:absolute;top:20px;bottom:20px;left:50%;width:0;border-left:4px dashed var(--line);transform:translateX(-50%);}
+.node-wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;}
+.node-wrap.off-l{transform:translateX(-64px);}
+.node-wrap.off-r{transform:translateX(64px);}
+.node{
+  width:74px;height:66px;border-radius:50%;border:none;cursor:pointer;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--green);box-shadow:0 6px 0 var(--green-dark);
+  transition:transform .08s;
+}
+.node:active{transform:translateY(4px);box-shadow:0 2px 0 var(--green-dark);}
+.node svg{width:32px;height:32px;}
+.node.boss{background:var(--purple);box-shadow:0 6px 0 var(--purple-dark);width:86px;height:76px;}
+.node.boss:active{box-shadow:0 2px 0 var(--purple-dark);}
+.node.done{background:var(--yellow);box-shadow:0 6px 0 var(--yellow-dark);}
+.node.done:active{box-shadow:0 2px 0 var(--yellow-dark);}
+.node.locked{background:#c9cfc0;box-shadow:0 6px 0 #a9b198;cursor:not-allowed;}
+@media (prefers-color-scheme: dark){ .node.locked{background:#3a4034;box-shadow:0 6px 0 #2b3026;} }
+.node .stars{position:absolute;top:-11px;left:50%;transform:translateX(-50%);display:flex;gap:1px;}
+.node .stars svg{width:15px;height:15px;}
+.node-label{margin-top:12px;text-align:center;max-width:190px;}
+.node-label .t{font-weight:900;font-size:15.5px;line-height:1.3;}
+.node-label .s{color:var(--ink-soft);font-weight:700;font-size:12.5px;margin-top:1px;}
+.node-label .tag-done{color:var(--yellow-dark);font-weight:900;font-size:12.5px;}
+.node-label .tag-lock{color:var(--ink-soft);font-weight:800;font-size:12.5px;}
+.start-bubble{
+  position:absolute;top:-38px;left:50%;transform:translateX(-50%);
+  background:var(--surface);border:2px solid var(--line);color:var(--green-dark);
+  font-weight:900;font-size:13px;border-radius:10px;padding:5px 12px;white-space:nowrap;
+  animation:bob 1.4s ease-in-out infinite;
+}
+.start-bubble::after{content:"";position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);border:7px solid transparent;border-top-color:var(--line);border-bottom:none;}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-5px)}}
+@media (prefers-reduced-motion: reduce){ .start-bubble{animation:none;} }
+.chapter-next{margin:8px 20px 0;border:2px dashed var(--line);border-radius:16px;padding:14px 16px;color:var(--ink-soft);font-weight:800;font-size:14px;text-align:center;line-height:1.6;}
+
+/* ---------- bottom tab bar ---------- */
+#view-main{height:100dvh;}
+.main-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.tabbar{
+  background:var(--surface);flex:none;
+  border-top:2px solid var(--line);display:flex;
+}
+.tabbar button{
+  flex:1;background:none;border:none;cursor:pointer;min-height:62px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-weight:900;font-size:12.5px;color:var(--ink-soft);padding:6px 2px calc(6px + env(safe-area-inset-bottom));
+}
+.tabbar button svg{width:24px;height:24px;}
+.tabbar button.on{color:var(--green-dark);}
+.tabbar button .badge{background:var(--red);color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;margin-left:2px;}
+
+/* ---------- panels (mistakes / me) ---------- */
+.panel{padding:20px;}
+.panel h2{margin:0 0 4px;font-size:24px;font-weight:900;}
+.panel .sub{color:var(--ink-soft);font-weight:700;font-size:14.5px;margin:0 0 16px;line-height:1.6;}
+.empty-box{border:2px dashed var(--line);border-radius:18px;padding:30px 18px;text-align:center;color:var(--ink-soft);font-weight:800;line-height:1.7;}
+.mistake-card{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:12px;}
+.mistake-card .from{font-size:12.5px;font-weight:900;color:var(--blue-dark);letter-spacing:.4px;}
+.mistake-card .q{font-weight:800;font-size:15px;margin:5px 0 8px;line-height:1.55;}
+.mistake-card .why{color:var(--ink-soft);font-weight:700;font-size:13.5px;line-height:1.6;margin-bottom:12px;}
+.me-card{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;}
+.me-card .avatar-line{display:flex;align-items:center;gap:14px;}
+.avatar-circle{width:58px;height:58px;border-radius:50%;background:var(--green-soft);display:flex;align-items:center;justify-content:center;flex:none;}
+.avatar-circle svg{width:34px;height:34px;}
+.me-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.me-stat{background:var(--surface2);border-radius:14px;padding:12px 14px;}
+.me-stat .n{font-size:22px;font-weight:900;}
+.me-stat .l{color:var(--ink-soft);font-weight:800;font-size:12.5px;margin-top:1px;}
+
+/* ---------- lesson ---------- */
+.lesson-top{padding:14px 16px 6px;display:flex;align-items:center;gap:12px;}
+.close-x{background:none;border:none;cursor:pointer;color:var(--ink-soft);width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;flex:none;}
+.close-x svg{width:24px;height:24px;}
+.lesson-progress{flex:1;}
+.hearts-display{display:flex;gap:2px;align-items:center;font-weight:900;color:var(--red);font-size:16px;flex:none;}
+.hearts-display svg{width:22px;height:22px;}
+.lesson-body{flex:1;padding:12px 20px 20px;overflow-y:auto;}
+.step-tag{display:inline-block;font-weight:900;font-size:12.5px;letter-spacing:1.2px;border-radius:8px;padding:4px 10px;margin-bottom:12px;}
+.step-tag.teach{background:var(--blue-soft);color:var(--blue-dark);}
+.step-tag.play{background:var(--green-soft);color:var(--green-dark);}
+.step-tag.challenge{background:var(--purple-soft);color:var(--purple-dark);}
+.step-tag.boss{background:var(--purple);color:#fff;}
+@media (prefers-color-scheme: dark){ .step-tag.teach{color:#7fd4ff;} .step-tag.play{color:#9be15d;} .step-tag.challenge{color:#d3a6ff;} }
+.lesson-body h2{font-size:23px;font-weight:900;margin:0 0 10px;line-height:1.35;}
+.lesson-body .teach-text{font-size:16px;font-weight:600;line-height:1.75;color:var(--ink);}
+.lesson-body .teach-text b{font-weight:900;}
+.analogy{background:var(--yellow-soft);border-radius:14px;padding:12px 15px;font-weight:700;font-size:14.5px;line-height:1.65;margin:14px 0;}
+.analogy .a-title{font-weight:900;font-size:13px;letter-spacing:.6px;margin-bottom:3px;}
+.codeblock{
+  background:var(--code-bg);color:var(--code-ink);border-radius:14px;
+  padding:15px 16px;font-family:"JetBrains Mono",ui-monospace,monospace;
+  font-size:15px;line-height:1.75;white-space:pre-wrap;word-break:break-word;margin:12px 0;
+}
+.codeblock .cm{color:#8fa8a0;}
+.codeblock .out-label{color:#ffcb6b;font-size:12px;font-weight:700;letter-spacing:1px;}
+.tip-box{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 15px;font-weight:700;font-size:14.5px;line-height:1.65;margin:12px 0;}
+.tip-box .t-title{font-weight:900;color:var(--blue-dark);font-size:13px;letter-spacing:.6px;margin-bottom:3px;}
+.q-text{font-size:17.5px;font-weight:800;line-height:1.6;margin:2px 0 12px;}
+.q-code{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:13px 15px;font-family:"JetBrains Mono",monospace;font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:0 0 16px;}
+.options{display:flex;flex-direction:column;gap:11px;}
+.option{
+  text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:14px;
+  padding:14px 16px;font-size:16px;font-weight:700;cursor:pointer;min-height:52px;color:var(--ink);
+  box-shadow:0 3px 0 var(--line);transition:all .1s;line-height:1.5;width:100%;
+}
+.option:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line);}
+.option.sel{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 3px 0 var(--blue-dark);color:var(--ink);}
+.option code{font-size:15px;background:rgba(127,127,127,.14);padding:1px 6px;border-radius:6px;}
+.fill-line{
+  background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:16px;
+  font-family:"JetBrains Mono",monospace;font-size:16px;line-height:2.1;word-break:break-word;margin-bottom:8px;
+}
+.fill-input{
+  display:inline-block;width:130px;border:none;border-bottom:3px solid var(--yellow);
+  background:rgba(255,255,255,.12);color:#fff;font-family:"JetBrains Mono",monospace;
+  font-size:16px;font-weight:700;text-align:center;padding:2px 6px;outline:none;border-radius:6px 6px 0 0;min-height:36px;
+}
+.fill-input::placeholder{color:rgba(255,255,255,.4);font-size:13px;}
+.fill-note{color:var(--ink-soft);font-weight:700;font-size:13.5px;margin-bottom:14px;}
+.chips-answer{
+  min-height:56px;border:2px dashed var(--line);border-radius:12px;padding:8px;
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px;background:var(--surface);
+}
+.chips-answer .ph{color:var(--ink-soft);font-weight:700;font-size:14px;padding:4px 6px;}
+.chips-bank{display:flex;flex-wrap:wrap;gap:9px;}
+.chip{
+  background:var(--surface);border:2px solid var(--line);box-shadow:0 3px 0 var(--line);
+  border-radius:10px;padding:9px 14px;font-family:"JetBrains Mono",monospace;font-size:15px;font-weight:700;
+  cursor:pointer;min-height:44px;color:var(--ink);
+}
+.chip:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line);}
+.chip.used{opacity:.28;pointer-events:none;}
+.chip.in-answer{background:var(--blue-soft);border-color:var(--blue);box-shadow:0 3px 0 var(--blue-dark);}
+.code-editor{
+  width:100%;min-height:130px;background:var(--code-bg);color:var(--code-ink);
+  border:none;border-radius:14px;padding:15px 16px;font-family:"JetBrains Mono",monospace;
+  font-size:15.5px;line-height:1.7;outline:none;resize:vertical;
+}
+.code-out{
+  display:none;background:var(--surface2);border:2px solid var(--line);border-radius:12px;
+  padding:12px 15px;font-family:"JetBrains Mono",monospace;font-size:14.5px;line-height:1.7;
+  white-space:pre-wrap;word-break:break-word;margin-top:12px;
+}
+.code-out.show{display:block;}
+.code-out .o-title{font-family:"Nunito",sans-serif;font-weight:900;font-size:12.5px;letter-spacing:1px;color:var(--ink-soft);margin-bottom:4px;}
+.lesson-foot{padding:12px 20px calc(16px + env(safe-area-inset-bottom));border-top:2px solid var(--line);background:var(--surface);display:flex;gap:10px;}
+.lesson-foot .btn{flex:1;}
+.hint-btn{flex:none !important;padding-left:16px;padding-right:16px;}
+.hint-box{display:none;background:var(--yellow-soft);border-radius:12px;padding:12px 15px;font-weight:700;font-size:14.5px;line-height:1.65;margin-top:14px;}
+.hint-box.show{display:block;}
+.hint-box .h-title{font-weight:900;font-size:13px;letter-spacing:.6px;margin-bottom:3px;}
+
+/* ---------- feedback sheet ---------- */
+.feedback{
+  display:none;padding:18px 20px calc(18px + env(safe-area-inset-bottom));
+  border-top:2px solid var(--line);
+}
+.feedback.show{display:block;animation:slideUp .22s ease;}
+@keyframes slideUp{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media (prefers-reduced-motion: reduce){ .feedback.show{animation:none;} }
+.feedback.good{background:var(--green-soft);}
+.feedback.bad{background:var(--red-soft);}
+.feedback .fb-head{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;margin-bottom:6px;}
+.feedback.good .fb-head{color:var(--green-dark);}
+.feedback.bad .fb-head{color:var(--red-dark);}
+@media (prefers-color-scheme: dark){ .feedback.good .fb-head{color:#9be15d;} .feedback.bad .fb-head{color:#ff9a9a;} }
+.feedback .fb-body{font-weight:700;font-size:15px;line-height:1.7;margin-bottom:14px;}
+.feedback .fb-body .sec{margin-top:8px;}
+.feedback .fb-body .sec b{display:block;font-size:13px;letter-spacing:.6px;}
+.feedback .fb-xp{font-weight:900;color:var(--yellow-dark);font-size:15px;}
+
+/* ---------- result screens ---------- */
+.result{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;}
+.result .big-emoji-badge{width:104px;height:104px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+.result .big-emoji-badge svg{width:56px;height:56px;}
+.result h2{font-size:28px;font-weight:900;margin:0 0 6px;}
+.result p{color:var(--ink-soft);font-weight:700;line-height:1.65;margin:0 0 18px;font-size:15.5px;}
+.result-stars{display:flex;gap:6px;margin-bottom:16px;}
+.result-stars svg{width:42px;height:42px;}
+.result-stats{display:flex;gap:10px;width:100%;max-width:340px;margin-bottom:22px;}
+.result-stat{flex:1;border-radius:14px;padding:12px 6px;border:2px solid var(--line);background:var(--surface);}
+.result-stat .n{font-size:21px;font-weight:900;}
+.result-stat .l{font-size:12px;font-weight:800;color:var(--ink-soft);}
+.result .btn{width:100%;max-width:340px;margin-bottom:11px;}
+.shake{animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media (prefers-reduced-motion: reduce){ .shake{animation:none;} }
+/* ---------- sound & celebration fx ---------- */
+#fxCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:200;}
+.sound-btn{background:var(--surface);border:2px solid var(--line);border-radius:999px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex:none;padding:0;line-height:1;}
+.feedback.good .fb-head{animation:popIn .38s cubic-bezier(.2,1.6,.4,1);}
+@keyframes popIn{0%{transform:scale(.55);opacity:0}60%{transform:scale(1.13);opacity:1}100%{transform:scale(1);opacity:1}}
+.fb-check{display:inline-flex;width:34px;height:34px;border-radius:50%;background:var(--green);align-items:center;justify-content:center;flex:none;animation:popIn .38s cubic-bezier(.2,1.6,.4,1);box-shadow:0 3px 0 var(--green-dark);}
+.xp-float{position:fixed;z-index:210;font-weight:900;color:var(--yellow-dark);font-size:21px;pointer-events:none;animation:floatUp 1.1s ease-out forwards;text-shadow:0 1px 0 rgba(255,255,255,.7);}
+@keyframes floatUp{0%{transform:translateY(0) scale(.8);opacity:0}15%{opacity:1;transform:translateY(-8px) scale(1.18)}100%{transform:translateY(-74px) scale(1);opacity:0}}
+.hearts-display.heart-hit{animation:heartHit .42s ease;}
+@keyframes heartHit{0%{transform:scale(1)}30%{transform:scale(1.28) rotate(-5deg)}60%{transform:scale(.9)}100%{transform:scale(1)}}
+.result-stars svg{animation:starPop .5s cubic-bezier(.2,1.8,.4,1) both;}
+.result-stars svg:nth-child(2){animation-delay:.18s}
+.result-stars svg:nth-child(3){animation-delay:.36s}
+@keyframes starPop{0%{transform:scale(0) rotate(-40deg);opacity:0}70%{transform:scale(1.32) rotate(8deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.result h2{animation:popIn .45s cubic-bezier(.2,1.6,.4,1);}
+.result .big-emoji-badge{animation:popIn .5s cubic-bezier(.2,1.6,.4,1);}
+@media (prefers-reduced-motion: reduce){
+  .feedback.good .fb-head,.fb-check,.result-stars svg,.result h2,.result .big-emoji-badge,.hearts-display.heart-hit{animation:none;}
+  .xp-float{display:none;}
+}
+.toast{
+  position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:var(--bg);font-weight:800;font-size:14.5px;
+  padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:all .25s;z-index:99;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ======== WELCOME ======== -->
+  <section class="view welcome active" id="view-welcome">
+    <svg class="hero-snake" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="56" fill="#d7ffb8"/>
+      <path d="M30 78c14-2 10-16 24-18s12 12 26 10 14-10 12-20" fill="none" stroke="#58cc02" stroke-width="13" stroke-linecap="round"/>
+      <circle cx="93" cy="48" r="13" fill="#58cc02"/>
+      <circle cx="97" cy="45" r="3.4" fill="#fff"/>
+      <path d="M104 52l9 3-9 3z" fill="#ff4b4b"/>
+      <path d="M52 96l8-12 8 12z" fill="#ffc800"/>
+    </svg>
+    <h1>小生Python</h1>
+    <p class="tagline">像学英语一样学编程：<b>先认字母，再背单词，<br/>学语法，最后自己写句子。</b><br/>一关 5 分钟，像打游戏一样闯过去。</p>
+    <div class="feature-row">
+      <div class="feature-chip">🐍 <span>RPG 闯关地图</span></div>
+      <div class="feature-chip">❤️ <span>爱心机制</span></div>
+      <div class="feature-chip">📕 <span>错题本重练</span></div>
+      <div class="feature-chip">⭐ <span>经验升级</span></div>
+    </div>
+    <div class="name-card">
+      <label for="nameInput">给你的勇者起个名字，第一次打开输入一次就行</label>
+      <input class="name-input" id="nameInput" type="text" maxlength="12" placeholder="比如：小生" autocomplete="off" />
+      <div class="name-err" id="nameErr"></div>
+      <button class="btn block" id="startBtn">开始冒险 →</button>
+    </div>
+    <div class="roadmap">
+      <h3>🗺️ 冒险路线（从简到繁）</h3>
+      <ol>
+        <li><b>第一章 · 字母篇</b> <span class="now">← V1 先玩这一章，9 关</span></li>
+        <li><b>第二章 · 单词篇</b>：列表、字典等「单词家族」</li>
+        <li><b>第三章 · 语法篇</b>：if 判断、for 循环</li>
+        <li><b>第四章 · 句子篇</b>：函数，自己写完整小程序</li>
+        <li><b>第五章 · 文章篇</b>：小项目实战，真跑代码</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ======== MAIN (map / mistakes / me) ======== -->
+  <section class="view" id="view-main">
+    <div class="statsbar">
+      <div class="stat xp" title="经验值">
+        <svg viewBox="0 0 24 24" fill="#ffc800"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+        <span id="statXp">0</span>
+      </div>
+      <div class="stat coin" title="金币">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#ffc800" stroke="#e0a800" stroke-width="2"/><text x="12" y="16.5" text-anchor="middle" font-size="11" font-weight="900" fill="#8a6100">G</text></svg>
+        <span id="statCoin">0</span>
+      </div>
+      <div class="stat heart" title="本关爱心在关卡里计算">
+        <svg viewBox="0 0 24 24" fill="#ff4b4b"><path d="M12 21s-7.5-4.9-9.8-9.2C.6 8.6 2.6 5 6.1 5c2 0 3.4 1.1 4.2 2.4h3.4C14.5 6.1 15.9 5 17.9 5c3.5 0 5.5 3.6 3.9 6.8C19.5 16.1 12 21 12 21z" transform="scale(0.92) translate(1,0)"/></svg>
+        <span id="statDone">0/9</span>
+      </div>
+      <div class="stat level" id="statLevel">Lv.1 新手勇者</div>
+      <button class="sound-btn" id="soundBtn" aria-label="开关音效" title="开关音效">🔊</button>
+    </div>
+
+    <div class="main-scroll" id="mainScroll">
+    <div id="tab-map">
+      <div class="map-head">
+        <span class="chapter-tag">第一章 · 字母篇</span>
+        <h2 id="mapGreeting">新手村</h2>
+        <p>学英语先背 26 个字母，学 Python 先认它的「字母」：<b>print、变量、数字、文字</b>。一关一关往上爬，打完 Boss 关就毕业！</p>
+      </div>
+      <div class="xp-progress">
+        <div class="row"><span id="xpLabel">Lv.1 新手勇者</span><span id="xpNums">0 / 100 XP</span></div>
+        <div class="bar"><i id="xpBar" style="width:0%"></i></div>
+      </div>
+      <div class="path" id="path"></div>
+      <div class="chapter-next">🔒 第二章「单词篇」：打完第一章 Boss 后解锁<br/>列表、字典、常用函数，一个个背下来</div>
+      <div style="height:18px"></div>
+    </div>
+
+    <div id="tab-mistakes" style="display:none">
+      <div class="panel">
+        <h2>📕 错题本</h2>
+        <p class="sub">答错的题会自动收进这里，这里就是你的训练场。点「再练一次」把错题练对，它就会从错题本里消失。</p>
+        <div id="mistakeList"></div>
+      </div>
+    </div>
+
+    <div id="tab-me" style="display:none">
+      <div class="panel">
+        <h2>🧑‍🎓 我的勇者</h2>
+        <p class="sub">这一版的进度先记在这台设备打开的页面里；云端同步版接好后，手机和电脑会自动接上。</p>
+        <div class="me-card">
+          <div class="avatar-line">
+            <div class="avatar-circle">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="#58cc02"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" fill="#58cc02"/></svg>
+            </div>
+            <div>
+              <div style="font-size:20px;font-weight:900" id="meName">勇者</div>
+              <div style="color:var(--ink-soft);font-weight:800;font-size:13.5px" id="meTitle">Lv.1 新手勇者 · 第一章 字母篇</div>
+            </div>
+          </div>
+        </div>
+        <div class="me-grid">
+          <div class="me-stat"><div class="n" id="meXp">0</div><div class="l">总经验 XP</div></div>
+          <div class="me-stat"><div class="n" id="meCoin">0</div><div class="l">金币</div></div>
+          <div class="me-stat"><div class="n" id="meDone">0 / 9</div><div class="l">已通关</div></div>
+          <div class="me-stat"><div class="n" id="meAcc">—</div><div class="l">总正确率</div></div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="me-card">
+          <div style="font-weight:900;margin-bottom:6px">🏅 称号之路</div>
+          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8" id="meRoad"></div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <nav class="tabbar">
+      <button id="tabBtnMap" class="on">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+        冒险地图
+      </button>
+      <button id="tabBtnMistakes">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12a1 1 0 0 1 1 1v18l-7-4-7 4V3a1 1 0 0 1 1-1z"/></svg>
+        <span>错题本<span class="badge" id="mistakeBadge" style="display:none">0</span></span>
+      </button>
+      <button id="tabBtnMe">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></svg>
+        我的
+      </button>
+    </nav>
+  </section>
+
+  <!-- ======== LESSON ======== -->
+  <section class="view" id="view-lesson">
+    <div class="lesson-top">
+      <button class="close-x" id="lessonClose" aria-label="退出本关">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <div class="bar lesson-progress"><i id="lessonBar" style="width:0%;background:var(--green)"></i></div>
+      <div class="hearts-display" id="heartsDisplay"></div>
+    </div>
+    <div class="lesson-body" id="lessonBody"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="lesson-foot" id="lessonFoot">
+      <button class="btn ghost hint-btn" id="hintBtn" style="display:none">💡 提示</button>
+      <button class="btn" id="checkBtn">继续</button>
+    </div>
+  </section>
+
+  <!-- ======== RESULT ======== -->
+  <section class="view" id="view-result">
+    <div class="result" id="resultBox"></div>
+  </section>
+
+</div>
+<canvas id="fxCanvas" aria-hidden="true"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   小生Python V1 · 第一章 字母篇（9 关）
+   难度曲线：看懂 → 选择 → 填空 → 拼句子 → 自己写
+   ============================================================ */
+var LESSONS = [
+{
+  id:1, icon:"print", title:"你好，Python！", sub:"学会第一句话：print",
+  teach:{
+    tag:"先认第一个「字母」",
+    html:"学英语的第一步是说 <b>Hello</b>。学 Python 的第一步，是让电脑替你说话，用的是 <b>print</b>（读作「普林特」，意思是「打印、显示」）。<br/><br/>你在括号里写什么，电脑就在屏幕上显示什么。文字要穿上<b>引号</b>这件衣服，电脑才知道「这是要原样显示的话」。",
+    code:'print("你好，Python！")\nprint("我开始学编程了")',
+    out:"你好，Python！\n我开始学编程了",
+    analogy:"🎓 就像学英语：print 就像你的嘴巴，括号里的文字就是你要说的话，引号就是「这句话开始 / 结束」的标记。",
+    tip:"引号要用英文引号 \" \"，中文引号 “ ” 会报错。括号和引号都是成对出现的，少一个都不行。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"想让电脑显示「早上好」，下面哪一行是对的？",
+      options:['print("早上好")','print(早上好)','说("早上好")','print["早上好"]'], answer:0,
+      explain:{wrong:"你选的写法电脑看不懂。", why:"让电脑显示文字，必须用 print，文字还要穿上英文引号这件衣服。", fix:"记住这个万能句式：print(\"文字\")"},
+      hints:["想想老师刚教的那个单词，p 开头的。","句式是：print + 括号 + 引号 + 文字。"] },
+    { type:"choice", tag:"看一看", q:"运行 print(\"我爱编程\")，屏幕上会出现什么？",
+      options:["我爱编程",'print("我爱编程")',"“我爱编程” 带引号一起显示","什么都不显示"], answer:0,
+      explain:{wrong:"注意：引号只是「衣服」，不会被显示出来。", why:"print 会把引号里的文字原样显示，引号本身不显示，print 这个词也不会显示。", fix:"看到 print(\"…\")，就想：屏幕上只会出现 … 里面的内容。"},
+      hints:["引号是衣服，显示的时候会脱掉。","print 这个词本身也不会出现在屏幕上。"] },
+    { type:"fill", tag:"填一填", q:"补全代码，让电脑显示：我来了",
+      before:'_____("我来了")', answer:"print", note:"填那个让电脑说话的单词（小写）",
+      explain:{wrong:"显示文字的命令还没写对。", why:"Python 里负责「显示」的单词只有一个，就是 print，而且要全部小写。", fix:"把空填成 print"},
+      hints:["p 开头，一共 5 个字母。","就是你这节课学的第一个单词：pr___"] },
+    { type:"build", tag:"拼句子", q:"把词块拼成一句完整的代码：让电脑显示「加油」",
+      chips:[')','print','"加油"','('], answer:['print','(','"加油"',')'],
+      explain:{wrong:"顺序不对，电脑读不懂。", why:"拼代码和拼英语句子一样有语序：先写命令 print，再开括号，放穿引号的文字，最后关括号。", fix:"顺序是：print → ( → \"加油\" → )"},
+      hints:["第一个词块是命令本身。","括号要把文字包在里面。"] },
+    { type:"code", tag:"自己写", q:"轮到你了！写一行代码，让电脑显示：第一天打卡成功",
+      starter:"", expected:["第一天打卡成功"],
+      explain:{wrong:"运行结果和目标不一样，再对着句式检查一遍。", why:"自己写代码就三步：写 print、加括号、把目标文字放进英文引号里。", fix:"print(\"第一天打卡成功\")"},
+      hints:["先写 print，再写一对括号。","括号里放：\"第一天打卡成功\"（带英文引号）。"] }
+  ]
+},
+{
+  id:2, icon:"box", title:"给东西起名字", sub:"变量：贴个标签存起来",
+  teach:{
+    tag:"第二个「字母」：变量",
+    html:"如果每次用一个东西都要重写一遍，会很累。Python 允许你给东西<b>起个名字</b>，以后喊名字就能用它，这叫<b>变量</b>。<br/><br/>写法是 <b>名字 = 东西</b>。等号在这里不是「相等」，而是「把右边的东西，装进左边的名字里」。",
+    code:'name = "小生"\nage = 18\nprint(name)\nprint(age)',
+    out:"小生\n18",
+    analogy:"🎒 就像开学给水杯贴名字标签：name 是标签，「小生」是杯子里的水。以后喊 name，就能拿到里面的东西。",
+    tip:"变量名只能用字母、数字和下划线，不能以数字开头，也不能用中文标点。起名字尽量起得一看就懂，比如 age 表示年龄。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"下面哪一行是把「苹果」装进变量 fruit 里？",
+      options:['fruit = "苹果"','"苹果" = fruit','fruit == "苹果"','fruit("苹果")'], answer:0,
+      explain:{wrong:"装东西的方向反了，或者符号用错了。", why:"变量赋值是「名字在左，等号在中，东西在右」，用的是一个等号 =。", fix:"记住：名字 = 东西，比如 fruit = \"苹果\""},
+      hints:["名字在左边，东西在右边。","赋值只用一个等号。"] },
+    { type:"choice", tag:"想一想", q:"先运行 city = \"深圳\"，再运行 print(city)，屏幕显示什么？",
+      options:["深圳","city",'print(city)',"报错，什么都没有"], answer:0,
+      explain:{wrong:"print 一个变量时，显示的是变量里装的东西，不是变量名本身。", why:"city 是标签，里面装着「深圳」。print(city) 是喊标签拿东西，所以显示「深圳」。想显示 city 这四个字母，要给它穿引号：print(\"city\")。", fix:"没引号 = 用变量里的东西；有引号 = 原样显示文字。"},
+      hints:["想想水杯的比喻：喊标签，是拿到水还是拿到标签纸？","注意这行代码里 city 没有引号。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：把数字 100 装进变量 score 里",
+      before:"score _____ 100", answer:"=", note:"填那个「装进去」的符号",
+      explain:{wrong:"装东西用的不是这个符号。", why:"把东西装进变量，用一个等号 =。两个等号 == 是以后用来「比较」的，不是赋值。", fix:"把空填成一个等号 ="},
+      hints:["只需要一个符号。","不是 ==，赋值只用一个。"] },
+    { type:"build", tag:"拼句子", q:"拼出一句代码：把「奶茶」装进变量 drink",
+      chips:['=','drink','"奶茶"'], answer:['drink','=','"奶茶"'],
+      explain:{wrong:"顺序反了。", why:"拼赋值句和英语的「主谓宾」一样有固定语序：名字 → 等号 → 东西。", fix:"顺序是：drink → = → \"奶茶\""},
+      hints:["标签（名字）永远在最左边。","等号在中间。"] },
+    { type:"code", tag:"自己写", q:"写两行代码：第一行把你的爱好「打游戏」装进变量 hobby，第二行用 print 把 hobby 显示出来",
+      starter:"", expected:["打游戏"],
+      explain:{wrong:"检查两点：赋值是不是「名字 = 东西」，print 里写的是变量名 hobby（不带引号）吗？", why:"print(hobby) 不带引号，显示的才是变量里的东西；写成 print(\"hobby\") 只会显示 hobby 四个字母。", fix:"hobby = \"打游戏\"\nprint(hobby)"},
+      hints:["第一行：hobby = \"打游戏\"","第二行 print 里不要加引号。"] }
+  ]
+},
+{
+  id:3, icon:"123", title:"数字的世界", sub:"整数和数学运算",
+  teach:{
+    tag:"第三个「字母」：数字",
+    html:"文字要穿引号，<b>数字不用穿</b>，直接写。数字可以做数学题：<b>+ 加、- 减、* 乘、/ 除</b>。<br/><br/>注意乘法不是 ×，是星号 <b>*</b>；除法不是 ÷，是斜杠 <b>/</b>。电脑算出来的结果，可以直接 print 出来。",
+    code:"print(3 + 5)\nprint(10 - 2)\nprint(4 * 6)\nprint(20 / 4)",
+    out:"8\n8\n24\n5.0",
+    analogy:"🧮 就像用计算器：你写算式，print 负责把答案念出来。除法结果会带个 .0，是正常的，它表示这是个带小数的数。",
+    tip:"运算也有先后：先乘除、后加减，和数学课一样。想先算加减，就用括号括起来，比如 (3 + 5) * 2。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"print(6 * 7) 会显示什么？",
+      options:["42","67","13","6 * 7"], answer:0,
+      explain:{wrong:"星号 * 在 Python 里是乘法。", why:"6 * 7 就是 6 乘以 7，等于 42。print 会先算出结果，再显示结果。", fix:"看到 * 就当成 × 来算。"},
+      hints:["* 是乘法符号。","6 乘以 7 是多少？"] },
+    { type:"choice", tag:"想一想", q:"下面哪个写法表示「3 加 4，再乘以 2」？",
+      options:["(3 + 4) * 2","3 + 4 * 2","3 + (4 * 2)","2 * 3 + 4"], answer:0,
+      explain:{wrong:"没括号时，电脑会先算乘法。", why:"3 + 4 * 2 会先算 4*2=8，再加 3 得 11。想先算加法，必须用括号把 3 + 4 括起来。", fix:"想先算哪部分，就给哪部分加括号。"},
+      hints:["规则是先乘除后加减。","括号里的最先算。"] },
+    { type:"fill", tag:"填一填", q:"补全代码，算出 5 乘以 8 的结果并显示",
+      before:"print(5 _____ 8)", answer:"*", note:"填乘法符号",
+      explain:{wrong:"乘法符号写错了。", why:"键盘上没有 ×，Python 用星号 * 表示乘法。", fix:"把空填成 *"},
+      hints:["不是 ×，是键盘上的星号。","长得像小雪花的那个符号。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：price 是 25，买 3 个，一共多少钱？把总价算出来显示",
+      before:"price = 25\nprint(price _____ 3)", answer:"*", note:"填一个运算符号",
+      explain:{wrong:"总价 = 单价 × 数量，这里要用乘法。", why:"变量可以和数字一起运算：price * 3 就是 25 * 3 = 75。", fix:"把空填成 *"},
+      hints:["单价乘以数量。","还是那个星号符号。"] },
+    { type:"code", tag:"自己写", q:"写一行代码：用 print 算出 12 加 30 的结果",
+      starter:"", expected:["42"],
+      explain:{wrong:"检查一下：print 里写的是算式 12 + 30 吗？数字不用加引号。", why:"数字和算式都不用引号，直接写进 print 的括号里，电脑会先算再显示。", fix:"print(12 + 30)"},
+      hints:["print 的括号里直接放算式。","加法就是 + 号。"] }
+  ]
+},
+{
+  id:4, icon:"Aa", title:"文字的魔法", sub:"字符串：拼接与重复",
+  teach:{
+    tag:"第四个「字母」：字符串",
+    html:"穿了引号的文字，在 Python 里有个正式名字叫<b>字符串</b>（英文 string）。文字也能做运算：<br/><br/><b>加号 +</b> 可以把两段文字<b>拼</b>在一起；<b>星号 *</b> 可以把文字<b>重复</b>好几遍。",
+    code:'print("你好" + "小生")\nprint("哈" * 3)\nname = "阿强"\nprint("欢迎你，" + name)',
+    out:"你好小生\n哈哈哈\n欢迎你，阿强",
+    analogy:"🧩 就像拼积木：+ 是把两块积木接起来，* 是把同一块积木复制好几份排成一排。",
+    tip:"文字只能和文字拼。如果把文字和数字直接拼（比如 \"年龄\" + 18），电脑会报错，以后我们会学怎么转换。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"print(\"早\" + \"安\") 会显示什么？",
+      options:["早安","早+安","早 安（中间有空格）","报错"], answer:0,
+      explain:{wrong:"文字之间的 + 是拼接，不是数学加法。", why:"\"早\" + \"安\" 会把两段文字首尾相连，变成「早安」，中间不会自动加空格。", fix:"文字 + 文字 = 拼成一段新文字。"},
+      hints:["想想拼积木：两块直接接上。","拼接不会自动加空格。"] },
+    { type:"choice", tag:"看一看", q:"print(\"Go\" * 3) 会显示什么？",
+      options:["GoGoGo","Go3","Go Go Go","报错"], answer:0,
+      explain:{wrong:"文字乘数字，是重复，不是报错。", why:"\"Go\" * 3 表示把 Go 重复 3 遍，连在一起显示 GoGoGo。", fix:"文字 * 数字 = 把文字重复那么多遍。"},
+      hints:["* 对文字来说是「复制」。","重复 3 遍，中间不加空格。"] },
+    { type:"fill", tag:"填一填", q:"补全代码，把「我爱」和「Python」拼起来显示",
+      before:'print("我爱" _____ "Python")', answer:"+", note:"填拼接用的符号",
+      explain:{wrong:"拼接文字用的不是这个符号。", why:"两段文字之间用 + 连接，就会拼成一段。", fix:"把空填成 +"},
+      hints:["和数学加法是同一个符号。","拼积木用的那个符号。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：显示「加油」重复 2 遍（也就是「加油加油」）",
+      chips:['*','print','"加油"','2','(',')'], answer:['print','(','"加油"','*','2',')'],
+      explain:{wrong:"顺序不对。", why:"先在 print 括号里放文字，再用 * 乘上重复次数。", fix:"顺序：print → ( → \"加油\" → * → 2 → )"},
+      hints:["print 和括号包住整个算式。","重复次数写在 * 后面。"] },
+    { type:"code", tag:"自己写", q:"先把「深圳」装进变量 city，再写一行 print，把「我在」+ city +「工作」拼起来显示。目标输出：在深圳工作",
+      starter:"", expected:["我在深圳工作"],
+      explain:{wrong:"检查顺序：先赋值 city，再 print 拼接；拼接时 city 不要加引号。", why:"print 里写 city（无引号）用的是变量里的「深圳」；三段内容用两个 + 连起来。", fix:"city = \"深圳\"\nprint(\"我在\" + city + \"工作\")"},
+      hints:["一共写两行，第一行先赋值。","第二行用两个 + 把三段连起来，中间的 city 不加引号。"] }
+  ]
+},
+{
+  id:5, icon:"fx", title:"把话说完整", sub:"f-string：句子里嵌变量",
+  teach:{
+    tag:"第五个「字母」：f-string",
+    html:"用 + 拼句子有个麻烦：引号、加号一大堆，还容易漏。Python 有个更好用的办法叫 <b>f-string</b>：在引号前面加个字母 <b>f</b>，然后把变量名放进<b>大括号 { }</b> 里，变量就会自动填进句子。",
+    code:'name = "小生"\nage = 18\nprint(f"我叫{name}，今年{age}岁")',
+    out:"我叫小生，今年18岁",
+    analogy:"✉️ 就像填表格的模板信：「我叫___，今年___岁」，大括号就是留好的空位，变量会自动对号入座填进去。",
+    tip:"两个要点缺一不可：引号前要有 f，大括号里写变量名（不要再套引号）。少了 f，大括号会被当成普通文字原样显示。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:'name = "阿美"，运行 print(f"你好，{name}") 会显示什么？',
+      options:["你好，阿美","你好，{name}","你好，name","报错"], answer:0,
+      explain:{wrong:"有 f 开头时，大括号里的变量会被换成它装的东西。", why:"引号前有 f，{name} 就是个「空位」，会自动填进 name 里的「阿美」。", fix:"看到 f\"…{变量}…\"，就把大括号换成变量的值去读。"},
+      hints:["注意引号前面有个 f。","大括号是留给变量的空位。"] },
+    { type:"choice", tag:"想一想", q:'想显示「我有 5 个苹果」（n = 5），哪行是对的？',
+      options:['print(f"我有{n}个苹果")','print("我有{n}个苹果")','print(f"我有 n 个苹果")','print("我有" n "个苹果")'], answer:0,
+      explain:{wrong:"要么少了 f，要么变量没放进大括号。", why:"f 和 { } 必须同时出现：有 f 没大括号，n 只会被当成普通字母；有大括号没 f，大括号会被原样显示。", fix:"标准写法：print(f\"我有{n}个苹果\")"},
+      hints:["f 和大括号要成对出现。","变量名要放进 { } 里面。"] },
+    { type:"fill", tag:"填一填", q:'补全代码，让 {city} 里的变量生效（city = "广州" 已在上一行）',
+      before:'city = "广州"\nprint(_____"我住在{city}")', answer:"f", note:"填引号前面的那个字母",
+      explain:{wrong:"让大括号生效的开关还没打开。", why:"引号前加字母 f，这串文字才变成 f-string，大括号里的变量才会被替换。", fix:"把空填成 f"},
+      hints:["就一个小写字母。","f-string 的 f。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：显示「价格是 99 元」（price = 99 已在上一行）",
+      before:'price = 99\nprint(f"价格是{_____}元")', answer:"price", note:"大括号里填变量名",
+      explain:{wrong:"大括号里要填的是变量名，不是数字本身。", why:"把变量名 price 放进大括号，Python 会自动去 price 里拿出 99 填进去。这样以后 price 变了，句子自动跟着变。", fix:"把空填成 price"},
+      hints:["填变量的名字，不带引号。","上一行定义的变量叫什么？"] },
+    { type:"code", tag:"自己写", q:"把「奶茶」装进变量 drink，价格 15 装进变量 price，再用 f-string 显示一句：奶茶只要15元",
+      starter:"", expected:["奶茶只要15元"],
+      explain:{wrong:"检查三行：两个赋值 + 一行 f-string。f 别漏，大括号里是变量名。", why:"f-string 里可以放多个大括号，每个空位填一个变量。", fix:"drink = \"奶茶\"\nprice = 15\nprint(f\"{drink}只要{price}元\")"},
+      hints:["一共三行：先装 drink，再装 price。","最后一行引号前加 f，两个变量各占一个 { }。"] }
+  ]
+},
+{
+  id:6, icon:"#", title:"给自己留纸条", sub:"注释：电脑看不见的话",
+  teach:{
+    tag:"第六个「字母」：注释",
+    html:"代码写多了，自己都会忘每行是干嘛的。Python 允许你在代码里写<b>注释</b>：在文字前面加一个 <b>#</b> 号，这一行就变成了「给人看的纸条」，电脑运行时会<b>直接跳过</b>它。",
+    code:'# 这是我的第一个程序\nprint("开始啦")  # 这行后面也可以写',
+    out:"开始啦",
+    analogy:"📝 就像在课本上写旁注：老师（电脑）讲课时不会念你的旁注，但你自己复习时一看就懂。",
+    tip:"# 后面的内容写什么都行，不会影响运行。养成习惯：每段代码先写一句注释说明它要干嘛。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"运行下面代码，屏幕会显示什么？\n# 今天天气不错\nprint(\"学习\")",
+      options:["学习","今天天气不错","两行都显示","报错"], answer:0,
+      explain:{wrong:"# 开头的那一行会被电脑跳过。", why:"注释是给人看的，电脑运行到 # 就会跳过这一行，所以只显示 print 的内容。", fix:"看到 # 开头，先在心里把它划掉再读代码。"},
+      hints:["有一行是给人看的纸条。","电脑只执行没被 # 标记的行。"] },
+    { type:"choice", tag:"想一想", q:"下面哪一行是注释？",
+      options:['# 计算总价','print("# 计算总价")','// 计算总价','<!-- 计算总价 -->'], answer:0,
+      explain:{wrong:"其他几个都不是 Python 的注释写法。", why:"Python 的注释只认 # 开头，而且不能被引号包住。被引号包住的 # 只是普通文字，会被 print 显示出来。", fix:"Python 注释 = 行首一个 #，后面跟说明文字。"},
+      hints:["注释不能穿引号。","Python 只认一个符号。"] },
+    { type:"fill", tag:"填一填", q:"把这一行变成注释，让电脑跳过它",
+      before:'_____ 先别运行这行\nprint("好的")', answer:"#", note:"填注释的符号",
+      explain:{wrong:"让电脑跳过一行的符号还没写对。", why:"在行首加 #，整行就变成注释，电脑不会执行它。", fix:"把空填成 #"},
+      hints:["井号键，就是它。","电话键盘上也有的那个符号。"] },
+    { type:"choice", tag:"想一想", q:"print(\"你好\") 后面跟着 # 打招呼，运行结果是？",
+      options:["只显示：你好","显示：你好 # 打招呼","只显示：打招呼","报错"], answer:0,
+      explain:{wrong:"# 后面的部分会被跳过，但 # 前面的代码照常运行。", why:"注释可以写在一行代码的后面：前面正常执行，后面从 # 开始全部跳过。", fix:"一行里，# 之前是代码，# 之后是纸条。"},
+      hints:["这一行一半是代码，一半是纸条。","# 前面的 print 会正常工作。"] },
+    { type:"code", tag:"自己写", q:"写两行：第一行写一句注释「我的目标」（前面加 #），第二行用 print 显示：30天学会Python",
+      starter:"", expected:["30天学会Python"],
+      explain:{wrong:"检查：注释行是不是以 # 开头？print 的文字和引号对不对？", why:"注释行以 # 开头会被跳过，不影响输出；第二行正常 print 即可。", fix:"# 我的目标\nprint(\"30天学会Python\")"},
+      hints:["第一行第一个字符就是 #。","第二行是普通的 print 句子。"] }
+  ]
+},
+{
+  id:7, icon:"in", title:"听你说话", sub:"input：让程序问你问题",
+  teach:{
+    tag:"第七个「字母」：input",
+    html:"到现在为止都是电脑在说。现在反过来：用 <b>input</b> 让电脑<b>问你一个问题</b>，等你打字回答，再把你的回答装进变量里。<br/><br/>不管你输入的是什么，input 拿到的都是<b>文字（字符串）</b>，哪怕你输入的是数字。",
+    code:'name = input("你叫什么名字？")\nprint(f"你好，{name}！")',
+    out:"你叫什么名字？小生\n你好，小生！",
+    analogy:"🎤 就像采访：input 是递话筒提问，你打的字就是回答，电脑会把回答记在小本本（变量）上。",
+    tip:"本关练习里，系统会假装你是「小生」来回答问题，你只要专心写代码就行。记住：input 拿到的一律是文字。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"input(\"请输入城市：\") 这行代码在做什么？",
+      options:["显示问题，等你打字回答","直接显示一个城市名","把问题存进电脑硬盘","计算城市的数量"], answer:0,
+      explain:{wrong:"input 不是显示答案，而是提问并等待。", why:"input 会先把括号里的问题显示出来，然后停下来等你输入，你输入的内容会被它「接住」。", fix:"input = 提问 + 等待 + 接住回答。"},
+      hints:["想想采访递话筒的比喻。","它在等谁说话？"] },
+    { type:"choice", tag:"想一想", q:"你在 input 里输入了数字 18，电脑拿到的 18 是什么类型？",
+      options:["文字（字符串）","数字（整数）","一半文字一半数字","报错，数字不能输入"], answer:0,
+      explain:{wrong:"这是个高频坑：input 拿到的永远是文字。", why:"哪怕你输入的是 18，input 也会把它当成文字 \"18\"。想拿它做数学运算，要先用 int() 转换，下一关就学。", fix:"记住：input 出来的，一律先当文字看待。"},
+      hints:["回顾老师划的重点。","和引号里的文字是同一种类型。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：问一句「你的爱好是？」，把回答装进变量 hobby",
+      before:'hobby = _____("你的爱好是？")', answer:"input", note:"填提问用的单词",
+      explain:{wrong:"提问并接住回答的单词还没写对。", why:"input(\"问题\") 会提问并等你回答，通常把它赋值给一个变量，回答就被装进去了。", fix:"把空填成 input"},
+      hints:["i 开头的单词，一共 5 个字母。","和 print 正好相反：一个说，一个听。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：问「几岁了？」，把回答装进变量 age",
+      chips:['age','input','=','("几岁了？")'], answer:['age','=','input','("几岁了？")'],
+      explain:{wrong:"顺序不对。", why:"句式是：变量 = input(\"问题\")。先写接住回答的变量，再写 input 提问。", fix:"顺序：age → = → input → (\"几岁了？\")"},
+      hints:["先写变量名和等号。","input 紧跟在等号后面。"] },
+    { type:"code", tag:"自己写", q:"写两行：用 input 问「你想去哪旅游？」把回答装进 city，再用 f-string 显示：我想去XX（系统会假装你回答「大理」）",
+      starter:"", simInput:"大理", expected:["我想去大理"],
+      explain:{wrong:"检查：第一行是不是 city = input(\"你想去哪旅游？\")？第二行 f-string 里 {city} 对不对？", why:"input 的回答装进 city 后，用 f-string 把它填进句子就行。", fix:"city = input(\"你想去哪旅游？\")\nprint(f\"我想去{city}\")"},
+      hints:["两行：第一行提问赋值，第二行 f-string 显示。","第二行别忘了引号前的 f。"] }
+  ]
+},
+{
+  id:8, icon:"type", title:"类型侦探", sub:"type 与 int/str 转换",
+  teach:{
+    tag:"第八个「字母」：类型",
+    html:"Python 里的每个东西都有<b>类型</b>，就像单词有词性：<b>int</b> 是整数、<b>str</b> 是文字（字符串）、<b>float</b> 是带小数的数。<br/><br/>想知道一个东西是什么类型，用 <b>type()</b> 问它。类型之间还能转换：<b>int()</b> 把文字变成数字，<b>str()</b> 把数字变成文字。",
+    code:'print(type(18))\nprint(type("18"))\nage = int("18")\nprint(age + 2)',
+    out:"<class 'int'>\n<class 'str'>\n20",
+    analogy:"🏷️ 就像超市给商品贴分类标签：int 是「数字区」，str 是「文字区」。标签贴错区（比如拿文字做加法），收银台（电脑）就会报警。",
+    tip:"最常见的报错就是类型不对：文字 \"18\" 不能直接 + 2，先 int(\"18\") 变成数字 18 就行。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"type(\"hello\") 的结果说明 \"hello\" 是什么类型？",
+      options:["str（文字）","int（整数）","float（小数）","bool（真假）"], answer:0,
+      explain:{wrong:"穿了引号的，是文字。", why:"只要被引号包住，不管里面是字母还是数字，都是 str 字符串类型。", fix:"判断类型先看引号：有引号 = str。"},
+      hints:["先看它有没有穿引号。","string 的缩写是三个字母。"] },
+    { type:"choice", tag:"想一想", q:"\"5\" + \"3\" 的结果是什么？",
+      options:["\"53\"（拼起来的文字）","8（数字相加）","报错","\"8\""], answer:0,
+      explain:{wrong:"引号里的数字还是文字，文字的 + 是拼接。", why:"\"5\" 和 \"3\" 都是字符串，+ 对字符串是拼接，所以得到 \"53\"，不是数学加法 8。", fix:"想算 8，要先把它们变成数字：int(\"5\") + int(\"3\")。"},
+      hints:["先判断：这两个 5 和 3 是什么类型？","文字的 + 是拼积木，不是算账。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：把文字 \"20\" 变成数字，再加 5 显示（结果应该是 25）",
+      before:'print(_____("20") + 5)', answer:"int", note:"填转换用的单词",
+      explain:{wrong:"把文字变数字的转换还没写对。", why:"int() 可以把像 \"20\" 这样的文字数字变成真正的整数，之后就能正常做加法。", fix:"把空填成 int"},
+      hints:["整数的英文缩写，3 个字母。","integer 的前三个字母。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：查一查 3.5 是什么类型",
+      before:"print(_____(3.5))", answer:"type", note:"填查询类型用的单词",
+      explain:{wrong:"查询类型的单词还没写对。", why:"type(东西) 会告诉你这个东西的类型，3.5 是带小数的数，结果会显示 float。", fix:"把空填成 type"},
+      hints:["t 开头，4 个字母。","就是「类型」这个英文单词。"] },
+    { type:"code", tag:"自己写", q:"系统会假装你用 input 输入了年龄「20」（文字）。写代码：先用变量 age 接住 input(\"你几岁？\") 的回答，再把它转换成数字加 1，用 print 显示明年年龄 21",
+      starter:"", simInput:"20", expected:["21"],
+      explain:{wrong:"关键一步：input 拿到的是文字，必须先 int() 转换才能 +1，不然会报错或拼字。", why:"age = input(...) 拿到文字 \"20\"，int(age) 变成数字 20，加 1 等于 21。", fix:"age = input(\"你几岁？\")\nprint(int(age) + 1)"},
+      hints:["一共两行，第一行用 input 接住回答。","第二行 print 里，先 int(age) 再 + 1。"] }
+  ]
+},
+{
+  id:9, icon:"boss", boss:true, title:"新手村 Boss 战", sub:"毕业考：字母篇综合挑战",
+  teach:{
+    tag:"Boss 关 · 先热个身",
+    html:"勇者，字母篇的本事你都学齐了：<b>print</b> 说话、<b>变量</b> 存东西、<b>数字</b> 做运算、<b>字符串</b> 拼句子、<b>f-string</b> 填空、<b>注释</b> 留纸条、<b>input</b> 提问、<b>type / int</b> 查类型。<br/><br/>这一关没有新知识，全是前面学过的招式混着用。打赢它，第一章就毕业了，第二章「单词篇」的大门也会打开。",
+    code:'hero = "小生"\nlevel = 1\nprint(f"{hero}出发了，当前等级{level}")',
+    out:"小生出发了，当前等级1",
+    analogy:"⚔️ 就像游戏里的新手村 Boss：招式你都见过，只是它会连着出招。沉住气，一题一题拆。",
+    tip:"遇到综合题别慌，先在心里过一遍：这题在考哪个「字母」？再动手。"
+  },
+  exercises:[
+    { type:"choice", tag:"Boss · 第1招", q:"下面哪行代码能正确显示「我今年 18 岁」（age = 18 已定义）？",
+      options:['print(f"我今年{age}岁")','print("我今年{age}岁")','print(f"我今年 age 岁")','print("我今年" age "岁")'], answer:0,
+      explain:{wrong:"f 和大括号，缺一个都不行。", why:"少了 f，大括号会原样显示；变量没放进大括号，只会显示字母 age。", fix:"完整招式：print(f\"我今年{age}岁\")"},
+      hints:["回忆第 5 关的成对要点。","引号前 + 大括号里，两个地方都要对。"] },
+    { type:"fill", tag:"Boss · 第2招", q:"补全代码：算出一周有几个小时并显示（7 天 × 24 小时）",
+      before:"print(7 _____ 24)", answer:"*", note:"填运算符号",
+      explain:{wrong:"符号不对。", why:"求「一共多少」用乘法，Python 的乘法是 *，7 * 24 = 168。", fix:"把空填成 *"},
+      hints:["7 乘以 24。","星号。"] },
+    { type:"build", tag:"Boss · 第3招", q:"拼出完整代码：把「第一名」装进变量 rank",
+      chips:['"第一名"','rank','='], answer:['rank','=','"第一名"'],
+      explain:{wrong:"语序反了。", why:"赋值永远是：名字在左、等号在中、东西在右。", fix:"顺序：rank → = → \"第一名\""},
+      hints:["标签在最左边。","东西要穿引号。"] },
+    { type:"code", tag:"Boss · 第4招", q:"写一个自我介绍小程序：把「小生」装进 name，把 3 装进 days（已学天数），再用 f-string 显示：我是小生，已经学了3天",
+      starter:"", expected:["我是小生，已经学了3天"],
+      explain:{wrong:"三行逐个查：两个赋值对不对？f-string 的 f 和两个大括号齐不齐？", why:"综合题就是把学过的招式排队用：赋值、赋值、f-string 显示。", fix:"name = \"小生\"\ndays = 3\nprint(f\"我是{name}，已经学了{days}天\")"},
+      hints:["先写两行赋值，再写一行显示。","f-string 里有两个空位：{name} 和 {days}。"] },
+    { type:"code", tag:"Boss · 决胜招", q:"最后一击！写代码：用变量 price 装价格 9，变量 num 装数量 4，再 print 出总价（用乘法算，不要直接写 36）",
+      starter:"", expected:["36"],
+      explain:{wrong:"检查：是先赋值再运算吗？print 里写的是 price * num 吗？", why:"变量运算是编程的核心招式：把数据装进变量，再让电脑替你算。", fix:"price = 9\nnum = 4\nprint(price * num)"},
+      hints:["三行：两个赋值，一行 print 运算。","print 里是 price * num，中间是星号。"] }
+  ]
+}
+];
+
+/* ================= 状态 ================= */
+var TITLES = ["新手勇者","见习勇者","铁剑勇者","银甲勇者","金光勇者","屠龙勇者"];
+var state = {
+  name:"", xp:0, coins:0,
+  done:{},            // lessonId -> stars
+  answered:0, firstTryRight:0,
+  mistakes:[]         // {lessonId, exIdx, q, why}
+};
+function levelOf(xp){ return Math.min(6, Math.floor(xp/100)+1); }
+function levelTitle(xp){ return TITLES[levelOf(xp)-1]; }
+
+var session = null; // {lesson, stepIndex(0=teach), hearts, xpGain, coinsGain, firstTry:Set, practice:bool, singleEx}
+
+function $(id){ return document.getElementById(id); }
+function showView(id){
+  ["view-welcome","view-main","view-lesson","view-result"].forEach(function(v){
+    $(v).classList.toggle("active", v===id);
+  });
+  window.scrollTo(0,0);
+}
+function toast(msg){
+  var t=$("toast"); t.textContent=msg; t.classList.add("show");
+  setTimeout(function(){ t.classList.remove("show"); },1800);
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function escA(s){ return esc(s).replace(/"/g,"&quot;"); }
+
+/* ================= 欢迎页 ================= */
+$("startBtn").addEventListener("click", function(){
+  var name = $("nameInput").value.trim();
+  if(!name){ $("nameErr").textContent="先给勇者起个名字吧，一个字也行。"; $("nameInput").focus(); return; }
+  $("nameErr").textContent="";
+  state.name = name;
+  renderMain();
+  showView("view-main");
+  toast("欢迎来到新手村，" + name + "！");
+  playPop();
+});
+$("nameInput").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
+
+/* ================= 主界面 ================= */
+function renderMain(){
+  var doneCount = Object.keys(state.done).length;
+  $("statXp").textContent = state.xp;
+  $("statCoin").textContent = state.coins;
+  $("statDone").textContent = doneCount + "/9";
+  var lv = levelOf(state.xp);
+  $("statLevel").textContent = "Lv." + lv + " " + levelTitle(state.xp);
+  $("mapGreeting").textContent = state.name + "的新手村";
+  var inLevel = state.xp % 100;
+  $("xpLabel").textContent = "Lv." + lv + " " + levelTitle(state.xp);
+  $("xpNums").textContent = inLevel + " / 100 XP" + (lv>=6 ? "（已满级）" : "");
+  $("xpBar").style.width = (lv>=6 ? 100 : inLevel) + "%";
+  renderPath();
+  renderMistakes();
+  renderMe();
+  var badge = $("mistakeBadge");
+  badge.style.display = state.mistakes.length ? "" : "none";
+  badge.textContent = state.mistakes.length;
+}
+function starSvg(filled){
+  return '<svg viewBox="0 0 24 24" fill="'+(filled?"#ffc800":"#d5dbcb")+'"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>';
+}
+function nodeIcon(lesson, locked, done){
+  if(locked) return '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>';
+  if(done) return '<svg viewBox="0 0 24 24" fill="#fff"><path d="M9.5 16.2L5.8 12.5l-1.6 1.6 5.3 5.3L20 9l-1.6-1.6z"/></svg>';
+  if(lesson.boss) return '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.2 4.9 5.3.6-3.9 3.6 1 5.2L12 13.7l-4.6 2.6 1-5.2L4.5 7.5l5.3-.6z"/><path d="M5 21h14v-2H5z"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="#fff"><text x="12" y="17" text-anchor="middle" font-size="12" font-weight="900" fill="#fff">'+lesson.id+'</text></svg>';
+}
+function renderPath(){
+  var path = $("path"); path.innerHTML="";
+  var doneCount = Object.keys(state.done).length;
+  LESSONS.forEach(function(lesson, i){
+    var done = !!state.done[lesson.id];
+    var unlocked = i===0 || !!state.done[LESSONS[i-1].id];
+    var isCurrent = unlocked && !done;
+    var wrap = document.createElement("div");
+    wrap.className = "node-wrap " + (i%3===1 ? "off-l" : (i%3===2 ? "off-r" : ""));
+    var stars = "";
+    if(done){
+      var s = state.done[lesson.id];
+      stars = '<span class="stars">' + starSvg(s>=1) + starSvg(s>=2) + starSvg(s>=3) + '</span>';
+    }
+    wrap.innerHTML =
+      '<button class="node '+(lesson.boss?"boss ":"")+(done?"done":"")+(unlocked?"":"locked")+'" '+(unlocked?'':'disabled')+' aria-label="'+escA(lesson.title)+'">' +
+        stars + (isCurrent ? '<span class="start-bubble">开始</span>' : '') + nodeIcon(lesson, !unlocked, done) +
+      '</button>' +
+      '<div class="node-label"><div class="t">'+(lesson.boss?"👑 ":"")+'第'+lesson.id+'关 · '+esc(lesson.title)+'</div>' +
+      '<div class="s">'+esc(lesson.sub)+'</div>' +
+      (done ? '<div class="tag-done">已通关 · 可重打刷星</div>' : (!unlocked ? '<div class="tag-lock">先打完上一关解锁</div>' : '')) +
+      '</div>';
+    (function(l, u){
+      wrap.querySelector(".node").addEventListener("click", function(){ if(u) startLesson(l, false); });
+    })(lesson, unlocked);
+    path.appendChild(wrap);
+  });
+}
+function renderMistakes(){
+  var box = $("mistakeList");
+  if(!state.mistakes.length){
+    box.innerHTML = '<div class="empty-box">🎉 错题本是空的，太棒了！<br/>答错的题会自动收进这里，到时候来这里练掉它们。</div>';
+    return;
+  }
+  box.innerHTML = "";
+  state.mistakes.forEach(function(m, idx){
+    var lesson = LESSONS[m.lessonId-1];
+    var card = document.createElement("div");
+    card.className = "mistake-card";
+    card.innerHTML =
+      '<div class="from">来自：第'+m.lessonId+'关 · '+esc(lesson.title)+'</div>' +
+      '<div class="q">'+esc(m.q)+'</div>' +
+      '<div class="why"><b>错在哪：</b>'+esc(m.why)+'</div>' +
+      '<button class="btn blue small">再练一次</button>';
+    card.querySelector("button").addEventListener("click", function(){ startPractice(idx); });
+    box.appendChild(card);
+  });
+}
+function renderMe(){
+  $("meName").textContent = state.name || "勇者";
+  var lv = levelOf(state.xp);
+  $("meTitle").textContent = "Lv." + lv + " " + levelTitle(state.xp) + " · 第一章 字母篇";
+  $("meXp").textContent = state.xp;
+  $("meCoin").textContent = state.coins;
+  $("meDone").textContent = Object.keys(state.done).length + " / 9";
+  $("meAcc").textContent = state.answered ? Math.round(state.firstTryRight/state.answered*100) + "%" : "—";
+  var road = TITLES.map(function(t, i){
+    var got = lv > i;
+    var cur = lv === i+1;
+    return (got||cur ? "✅ " : "🔒 ") + "Lv." + (i+1) + " " + t + (cur ? " ← 你在这里" : "");
+  }).join("<br/>");
+  $("meRoad").innerHTML = road + "<br/><span style='font-size:13px'>每 100 XP 升一级，通关和答对题目都能拿到 XP。</span>";
+}
+function switchTab(tab){
+  $("tab-map").style.display = tab==="map" ? "" : "none";
+  $("tab-mistakes").style.display = tab==="mistakes" ? "" : "none";
+  $("tab-me").style.display = tab==="me" ? "" : "none";
+  $("tabBtnMap").classList.toggle("on", tab==="map");
+  $("tabBtnMistakes").classList.toggle("on", tab==="mistakes");
+  $("tabBtnMe").classList.toggle("on", tab==="me");
+  var ms = $("mainScroll"); if(ms) ms.scrollTop = 0;
+}
+$("tabBtnMap").addEventListener("click", function(){ switchTab("map"); });
+$("tabBtnMistakes").addEventListener("click", function(){ switchTab("mistakes"); });
+$("tabBtnMe").addEventListener("click", function(){ switchTab("me"); });
+
+/* ============================================================
+   迷你 Python 解释器（只支持本章用到的语法：
+   赋值、print、input、字符串/数字、四则运算、f-string、int()/str()/type()）
+   ============================================================ */
+function PyError(msg){ this.message = msg; }
+function tokenize(src){
+  var toks=[], i=0;
+  while(i<src.length){
+    var c=src[i];
+    if(c===" "||c==="\t"){ i++; continue; }
+    if(c==='"'||c==="'"){
+      var q=c, s="", j=i+1;
+      while(j<src.length && src[j]!==q){ if(src[j]==="\\"&&j+1<src.length){ j++; s+=src[j]; } else s+=src[j]; j++; }
+      if(j>=src.length) throw new PyError("引号没有关上，少了一个 "+q);
+      toks.push({t:"str", v:s}); i=j+1; continue;
+    }
+    if(/[0-9]/.test(c)){
+      var n=""; while(i<src.length && /[0-9.]/.test(src[i])){ n+=src[i]; i++; }
+      toks.push({t:"num", v:parseFloat(n)}); continue;
+    }
+    if(/[A-Za-z_]/.test(c)){
+      var w=""; while(i<src.length && /[A-Za-z0-9_]/.test(src[i])){ w+=src[i]; i++; }
+      toks.push({t:"name", v:w}); continue;
+    }
+    if("+-*/%(),".indexOf(c)>=0){ toks.push({t:c, v:c}); i++; continue; }
+    throw new PyError("不认识的符号："+c);
+  }
+  return toks;
+}
+function evalExpr(src, env, simInput){
+  var toks = tokenize(src), pos = 0;
+  function peek(){ return toks[pos]; }
+  function next(){ return toks[pos++]; }
+  function parseExpr(){ return parseAdd(); }
+  function parseAdd(){
+    var left = parseMul();
+    while(peek() && (peek().t==="+"||peek().t==="-")){
+      var op = next().t, right = parseMul();
+      left = applyOp(left, op, right);
+    }
+    return left;
+  }
+  function parseMul(){
+    var left = parseAtom();
+    while(peek() && (peek().t==="*"||peek().t==="/"||peek().t==="%")){
+      var op = next().t, right = parseAtom();
+      left = applyOp(left, op, right);
+    }
+    return left;
+  }
+  function applyOp(a, op, b){
+    var ta = typeof a, tb = typeof b;
+    if(op==="+"){
+      if(ta==="string" && tb==="string") return a+b;
+      if(ta==="number" && tb==="number") return a+b;
+      throw new PyError("类型不对：文字和数字不能直接相加（先用 int() 或 str() 转换）");
+    }
+    if(op==="*"){
+      if(ta==="number" && tb==="number") return a*b;
+      if(ta==="string" && tb==="number") return a.repeat(Math.max(0, Math.floor(b)));
+      if(ta==="number" && tb==="string") return b.repeat(Math.max(0, Math.floor(a)));
+      throw new PyError("类型不对：* 两边要是数字，或「文字 × 次数」");
+    }
+    if(ta!=="number"||tb!=="number") throw new PyError("类型不对："+op+" 只能用在数字上");
+    if(op==="-") return a-b;
+    if(op==="/"){ if(b===0) throw new PyError("不能除以 0"); return a/b; }
+    if(op==="%"){ if(b===0) throw new PyError("不能除以 0"); return a%b; }
+  }
+  function parseAtom(){
+    var tk = next();
+    if(!tk) throw new PyError("句子没写完");
+    if(tk.t==="num") return tk.v;
+    if(tk.t==="str") return tk.v;
+    if(tk.t==="-"){ var v = parseAtom(); if(typeof v!=="number") throw new PyError("负号只能用在数字前"); return -v; }
+    if(tk.t==="("){ var e = parseExpr(); var close = next(); if(!close||close.t!==")") throw new PyError("少了一个右括号 )"); return e; }
+    if(tk.t==="name"){
+      if(tk.v==="f" || tk.v==="F"){ /* handled outside */ }
+      var nx = peek();
+      if(nx && nx.t==="("){
+        next();
+        if(tk.v==="input"){ /* 参数是问题文字，跳过 */ parseExpr(); var c1=next(); if(!c1||c1.t!==")") throw new PyError("input 少了右括号"); return simInput!=null? simInput : ""; }
+        var arg = parseExpr();
+        var c2 = next(); if(!c2||c2.t!==")") throw new PyError("少了右括号 )");
+        if(tk.v==="int"){
+          if(typeof arg==="number") return Math.trunc(arg);
+          var num = Number(String(arg).trim());
+          if(String(arg).trim()===""||isNaN(num)) throw new PyError("int() 没法把这个文字变成数字");
+          return Math.trunc(num);
+        }
+        if(tk.v==="str"){ return pyStr(arg); }
+        if(tk.v==="type"){ return "<class '"+pyType(arg)+"'>"; }
+        throw new PyError("还没学过这个单词："+tk.v);
+      }
+      if(env.hasOwnProperty(tk.v)) return env[tk.v];
+      throw new PyError("变量 "+tk.v+" 还没有赋值，先给它装点东西吧");
+    }
+    throw new PyError("读不懂这里："+tk.v);
+  }
+  var result = parseExpr();
+  if(pos < toks.length) throw new PyError("这行代码后面还有没读完的部分，检查一下符号");
+  return result;
+}
+function pyType(v){ if(typeof v==="string") return "str"; if(typeof v==="number") return Number.isInteger(v)?"int":"float"; return "str"; }
+function pyStr(v){
+  if(typeof v==="string") return v;
+  if(typeof v==="number"){ return Number.isInteger(v) ? String(v) : String(Math.round(v*1000000)/1000000); }
+  return String(v);
+}
+function evalFString(content, env, simInput){
+  return content.replace(/\{([^{}]+)\}/g, function(_, expr){
+    return pyStr(evalExpr(expr.trim(), env, simInput));
+  });
+}
+function runPython(code, simInput){
+  var env = {}, out = [];
+  var lines = code.split("\n");
+  for(var li=0; li<lines.length; li++){
+    var raw = lines[li];
+    // 去掉行尾注释（粗略：不在引号内的 #）
+    var inQ=null, cut=raw.length;
+    for(var k=0;k<raw.length;k++){
+      var ch=raw[k];
+      if(inQ){ if(ch===inQ) inQ=null; }
+      else if(ch==='"'||ch==="'") inQ=ch;
+      else if(ch==="#"){ cut=k; break; }
+    }
+    var line = raw.slice(0,cut).trim();
+    if(!line) continue;
+    var m;
+    if((m = line.match(/^print\s*\((.*)\)\s*$/))){
+      var inner = m[1].trim();
+      if(inner===""){ out.push(""); continue; }
+      var fm = inner.match(/^f("([^"]*)"|'([^']*)')$/);
+      if(fm){ out.push(evalFString(fm[2]!=null?fm[2]:fm[3], env, simInput)); continue; }
+      out.push(pyStr(evalExpr(inner, env, simInput)));
+    } else if((m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/))){
+      var rhs = m[2].trim();
+      var fm2 = rhs.match(/^f("([^"]*)"|'([^']*)')$/);
+      if(fm2){ env[m[1]] = evalFString(fm2[2]!=null?fm2[2]:fm2[3], env, simInput); continue; }
+      env[m[1]] = evalExpr(rhs, env, simInput);
+    } else {
+      throw new PyError("这一行读不懂：「"+line+"」");
+    }
+  }
+  return out;
+}
+
+/* ============================================================
+   音效 + 撒花特效（Web Audio 合成音，无需任何音频文件）
+   答对：多邻国式上扬双音 + 小撒花 + XP 飘字
+   答错：低沉一沉 + 爱心受击抖动
+   通关：庆祝号角琶音 + 满屏撒花，Boss 战双倍撒花
+   ============================================================ */
+var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+var soundOn = true;
+var audioCtx = null;
+function ac(){
+  if(!audioCtx){
+    try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ audioCtx = null; }
+  }
+  if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, delay, dur, type, vol, slideTo){
+  if(!soundOn) return;
+  var ctx = ac(); if(!ctx) return;
+  var t0 = ctx.currentTime + (delay || 0);
+  var o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type || "sine";
+  o.frequency.setValueAtTime(freq, t0);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || 0.16, t0 + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function playPop(){ tone(540, 0, 0.07, "triangle", 0.07, 760); }
+function playCorrect(){
+  // 多邻国式：清脆的「叮—咚」上扬双音 + 一层闪亮泛音
+  tone(659.25, 0, 0.13, "sine", 0.18);
+  tone(987.77, 0.09, 0.26, "sine", 0.2);
+  tone(1318.5, 0.09, 0.2, "triangle", 0.07);
+}
+function playWrong(){
+  tone(220, 0, 0.16, "square", 0.05, 185);
+  tone(155, 0.1, 0.26, "square", 0.05, 130);
+}
+function playDefeat(){
+  tone(392, 0, 0.2, "triangle", 0.12);
+  tone(329.63, 0.18, 0.2, "triangle", 0.12);
+  tone(261.63, 0.36, 0.42, "triangle", 0.13);
+}
+function playFanfare(boss){
+  var seq = [523.25, 659.25, 783.99, 1046.5];
+  seq.forEach(function(f, i){ tone(f, i * 0.11, 0.3, "triangle", 0.16); });
+  tone(1318.5, 0.46, 0.5, "sine", 0.16);
+  tone(659.25, 0.46, 0.5, "triangle", 0.07);
+  if(boss){
+    var seq2 = [783.99, 987.77, 1174.66, 1567.98];
+    seq2.forEach(function(f, i){ tone(f, 0.62 + i * 0.1, 0.32, "triangle", 0.14); });
+    tone(2093, 1.05, 0.6, "sine", 0.13);
+  }
+}
+function playStarChime(i){ tone(880 * Math.pow(1.335, i), 0, 0.3, "sine", 0.15); }
+var PRAISE = ["答对了！", "漂亮一击！", "完美命中！", "就是这样，继续冲！", "稳稳拿下！"];
+function pickPraise(){ return PRAISE[Math.floor(Math.random() * PRAISE.length)]; }
+
+/* ---------- 撒花粒子（canvas） ---------- */
+var fxCanvas = null, fxCtx = null, fxParts = [], fxRunning = false;
+var FX_COLORS = ["#58cc02", "#1cb0f6", "#ffc800", "#ff4b4b", "#a560e8", "#ff9600"];
+function fxResize(){ if(fxCanvas){ fxCanvas.width = window.innerWidth; fxCanvas.height = window.innerHeight; } }
+function fxInit(){
+  fxCanvas = $("fxCanvas");
+  if(!fxCanvas || !fxCanvas.getContext) return;
+  fxCtx = fxCanvas.getContext("2d");
+  fxResize();
+  window.addEventListener("resize", fxResize);
+}
+function fxSpawn(p){ fxParts.push(p); if(!fxRunning){ fxRunning = true; requestAnimationFrame(fxLoop); } }
+function fxLoop(){
+  if(!fxCtx){ fxRunning = false; return; }
+  fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+  fxParts = fxParts.filter(function(p){ return p.life > 0 && p.y < fxCanvas.height + 40; });
+  fxParts.forEach(function(p){
+    p.vy += p.g; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
+    fxCtx.save();
+    fxCtx.translate(p.x, p.y); fxCtx.rotate(p.rot);
+    fxCtx.globalAlpha = Math.max(0, Math.min(1, p.life / 30));
+    fxCtx.fillStyle = p.color;
+    if(p.shape === "circle"){ fxCtx.beginPath(); fxCtx.arc(0, 0, p.w / 2, 0, Math.PI * 2); fxCtx.fill(); }
+    else { fxCtx.fillRect(-p.w / 2, -p.h / 2, p.w, Math.max(2, p.h * (0.35 + 0.65 * Math.abs(Math.sin(p.life * 0.14))))); }
+    fxCtx.restore();
+  });
+  if(fxParts.length){ requestAnimationFrame(fxLoop); }
+  else { fxRunning = false; fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height); }
+}
+function launchConfetti(n){
+  if(reduceMotion || !fxCtx) return;
+  var W = fxCanvas.width, H = fxCanvas.height;
+  for(var i = 0; i < n; i++){
+    fxSpawn({
+      x: Math.random() * W, y: -24 - Math.random() * H * 0.35,
+      vx: (Math.random() - 0.5) * 2.4, vy: 2 + Math.random() * 3.4,
+      g: 0.045 + Math.random() * 0.03, rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.25,
+      w: 6 + Math.random() * 6, h: 8 + Math.random() * 7,
+      color: FX_COLORS[i % FX_COLORS.length], shape: Math.random() < 0.35 ? "circle" : "rect",
+      life: 210 + Math.random() * 130
+    });
+  }
+}
+function burstAt(x, y, n){
+  if(reduceMotion || !fxCtx) return;
+  for(var i = 0; i < n; i++){
+    var a = Math.random() * Math.PI * 2, sp = 2.5 + Math.random() * 5.5;
+    fxSpawn({
+      x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2.4,
+      g: 0.17, rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3,
+      w: 5 + Math.random() * 5, h: 6 + Math.random() * 6,
+      color: FX_COLORS[i % FX_COLORS.length], shape: Math.random() < 0.4 ? "circle" : "rect",
+      life: 55 + Math.random() * 35
+    });
+  }
+}
+function floatXp(text, x, y){
+  if(reduceMotion) return;
+  var el = document.createElement("div");
+  el.className = "xp-float"; el.textContent = text;
+  el.style.left = Math.max(8, x - 24) + "px"; el.style.top = (y - 8) + "px";
+  document.body.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1150);
+}
+$("soundBtn").addEventListener("click", function(){
+  soundOn = !soundOn;
+  $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+  toast(soundOn ? "音效已打开" : "音效已静音");
+  if(soundOn) playCorrect();
+});
+fxInit();
+
+/* ================= 关卡流程 ================= */
+function heartSvg(lost){
+  return '<svg viewBox="0 0 24 24" fill="'+(lost?"#cfd6c4":"#ff4b4b")+'"><path d="M12 21s-7.5-4.9-9.8-9.2C.6 8.6 2.6 5 6.1 5c2 0 3.4 1.1 4.2 2.4h3.4C14.5 6.1 15.9 5 17.9 5c3.5 0 5.5 3.6 3.9 6.8C19.5 16.1 12 21 12 21z" transform="scale(0.92) translate(1,0)"/></svg>';
+}
+function renderHearts(){
+  if(!session){ $("heartsDisplay").innerHTML=""; return; }
+  var max = session.practice ? 5 : 3;
+  var h = "";
+  for(var i=0;i<max;i++) h += heartSvg(i >= session.hearts);
+  $("heartsDisplay").innerHTML = h;
+}
+function startLesson(lesson, practice, singleExIdx, mistakeIdx){
+  session = {
+    lesson: lesson, practice: !!practice,
+    singleEx: (typeof singleExIdx==="number") ? singleExIdx : null,
+    mistakeIdx: (typeof mistakeIdx==="number") ? mistakeIdx : null,
+    step: 0, hearts: practice ? 5 : 3,
+    xpGain: 0, coinsGain: 0, triedWrong: {}, hintLevel: 0,
+    totalEx: (typeof singleExIdx==="number") ? 1 : lesson.exercises.length
+  };
+  showView("view-lesson");
+  playPop();
+  renderStep();
+}
+function startPractice(mistakeIdx){
+  var m = state.mistakes[mistakeIdx];
+  startLesson(LESSONS[m.lessonId-1], true, m.exIdx, mistakeIdx);
+  toast("训练场：把这道错题练对，它就会消失");
+}
+function currentEx(){
+  if(!session) return null;
+  if(session.singleEx!=null) return session.lesson.exercises[session.singleEx];
+  if(session.step===0) return null;
+  return session.lesson.exercises[session.step-1];
+}
+function renderStep(){
+  var fb = $("feedback");
+  fb.className = "feedback"; fb.innerHTML = "";
+  $("lessonFoot").style.display = "";
+  renderHearts();
+  var totalSteps = session.singleEx!=null ? 1 : session.lesson.exercises.length + 1;
+  var cur = session.singleEx!=null ? (session.step===0?0:1) : session.step;
+  $("lessonBar").style.width = Math.round(cur/totalSteps*100) + "%";
+  var body = $("lessonBody");
+  var hintBtn = $("hintBtn");
+  var checkBtn = $("checkBtn");
+
+  if(session.step===0 && session.singleEx==null){
+    var t = session.lesson.teach;
+    hintBtn.style.display = "none";
+    checkBtn.textContent = session.lesson.boss ? "迎战 Boss！" : "开始练习 →";
+    checkBtn.className = "btn" + (session.lesson.boss ? " purple" : "");
+    body.innerHTML =
+      '<span class="step-tag '+(session.lesson.boss?"boss":"teach")+'">'+esc(t.tag)+'</span>' +
+      '<h2>'+(session.lesson.boss?"👑 ":"")+'第'+session.lesson.id+'关 · '+esc(session.lesson.title)+'</h2>' +
+      '<div class="teach-text">'+t.html+'</div>' +
+      '<div class="codeblock">'+esc(t.code)+'\n<span class="out-label">—— 运行结果 ——</span>\n'+esc(t.out)+'</div>' +
+      '<div class="analogy"><div class="a-title">换个说法理解</div>'+esc(t.analogy)+'</div>' +
+      '<div class="tip-box"><div class="t-title">⚠️ 避坑提示</div>'+esc(t.tip)+'</div>' +
+      (session.practice ? "" : '<div class="tip-box"><div class="t-title">❤️ 本关规则</div>你有 3 颗心，答错一题扣 1 颗，心用完就要重打这一关。别怕，错题会进错题本，之后随时能练。</div>');
+    return;
+  }
+
+  var ex = currentEx();
+  session.hintLevel = 0;
+  checkBtn.textContent = "检查";
+  checkBtn.className = "btn";
+  hintBtn.style.display = "";
+  hintBtn.textContent = "💡 提示";
+  var tagClass = ex.tag.indexOf("Boss")===0 ? "boss" : (ex.tag==="自己写" ? "challenge" : "play");
+  var html = '<span class="step-tag '+tagClass+'">'+esc(ex.tag)+'</span>';
+  html += '<div class="q-text">'+esc(ex.q).replace(/\n/g,"<br/>")+'</div>';
+
+  if(ex.type==="choice"){
+    html += '<div class="options" id="optBox">';
+    ex.options.forEach(function(op, i){
+      html += '<button class="option" data-i="'+i+'">'+esc(op)+'</button>';
+    });
+    html += '</div>';
+  } else if(ex.type==="fill"){
+    var parts = ex.before.split("_____");
+    html += '<div class="fill-line">'+esc(parts[0])+'<input class="fill-input" id="fillInput" placeholder="?" autocomplete="off" autocapitalize="none" spellcheck="false" />'+esc(parts[1]||"")+'</div>';
+    html += '<div class="fill-note">'+esc(ex.note||"")+'（在深色框的横线处打字）</div>';
+  } else if(ex.type==="build"){
+    html += '<div class="chips-answer" id="chipAnswer"><span class="ph">点下面的词块，按顺序拼出代码…</span></div>';
+    html += '<div class="chips-bank" id="chipBank">';
+    var shuffled = ex.chips.slice();
+    // 确定性打乱：按关卡+题号旋转，避免每次渲染乱跳
+    var seed = (session.lesson.id*7 + session.step*3) % shuffled.length;
+    shuffled = shuffled.slice(seed).concat(shuffled.slice(0,seed)).reverse();
+    shuffled.forEach(function(c, i){
+      html += '<button class="chip" data-c="'+escA(c)+'" data-i="'+i+'">'+esc(c)+'</button>';
+    });
+    html += '</div>';
+  } else if(ex.type==="code"){
+    if(ex.simInput!=null) html += '<div class="tip-box"><div class="t-title">🎤 本题设定</div>运行到 input 时，系统会假装你输入了「'+esc(ex.simInput)+'」。</div>';
+    html += '<textarea class="code-editor" id="codeEditor" placeholder="在这里写你的代码…" autocapitalize="none" spellcheck="false">'+esc(ex.starter||"")+'</textarea>';
+    html += '<div class="code-out" id="codeOut"><div class="o-title">运行结果</div><span id="codeOutText"></span></div>';
+  }
+  html += '<div class="hint-box" id="hintBox"><div class="h-title">💡 提示</div><span id="hintText"></span></div>';
+  body.innerHTML = html;
+  session.selected = null; session.builtSeq = [];
+
+  if(ex.type==="choice"){
+    body.querySelectorAll(".option").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        body.querySelectorAll(".option").forEach(function(b){ b.classList.remove("sel"); });
+        btn.classList.add("sel");
+        session.selected = parseInt(btn.getAttribute("data-i"),10);
+      });
+    });
+  }
+  if(ex.type==="build"){
+    body.querySelectorAll("#chipBank .chip").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        btn.classList.add("used");
+        session.builtSeq.push({c: btn.getAttribute("data-c"), i: btn.getAttribute("data-i")});
+        renderBuilt();
+      });
+    });
+  }
+  if(ex.type==="fill"){
+    var fi = $("fillInput");
+    fi.addEventListener("keydown", function(e){ if(e.key==="Enter") $("checkBtn").click(); });
+    setTimeout(function(){ fi.focus(); }, 250);
+  }
+  if(ex.type==="code"){
+    setTimeout(function(){ var ce=$("codeEditor"); if(ce) ce.focus(); }, 250);
+  }
+}
+function renderBuilt(){
+  var box = $("chipAnswer");
+  if(!session.builtSeq.length){
+    box.innerHTML = '<span class="ph">点下面的词块，按顺序拼出代码…</span>';
+    return;
+  }
+  box.innerHTML = "";
+  session.builtSeq.forEach(function(item, idx){
+    var b = document.createElement("button");
+    b.className = "chip in-answer"; b.textContent = item.c;
+    b.addEventListener("click", function(){
+      session.builtSeq.splice(idx,1);
+      var bank = document.querySelectorAll("#chipBank .chip");
+      bank.forEach(function(bb){ if(bb.getAttribute("data-i")===item.i) bb.classList.remove("used"); });
+      renderBuilt();
+    });
+    box.appendChild(b);
+  });
+}
+$("hintBtn").addEventListener("click", function(){
+  var ex = currentEx(); if(!ex) return;
+  var box = $("hintBox");
+  if(session.hintLevel < ex.hints.length){
+    $("hintText").textContent = ex.hints[session.hintLevel];
+    session.hintLevel++;
+    box.classList.add("show");
+    if(session.hintLevel >= ex.hints.length) $("hintBtn").textContent = "💡 提示（已用完）";
+  } else {
+    box.classList.add("show");
+  }
+});
+$("lessonClose").addEventListener("click", function(){
+  session = null;
+  renderMain();
+  showView("view-main");
+});
+
+/* ---------- 判题 ---------- */
+function judge(ex){
+  if(ex.type==="choice"){
+    if(session.selected==null) return {empty:true};
+    return {ok: session.selected===ex.answer, yourText: ex.options[session.selected]};
+  }
+  if(ex.type==="fill"){
+    var v = $("fillInput").value.trim();
+    if(!v) return {empty:true};
+    var norm = function(s){ return s.replace(/\s+/g,""); };
+    return {ok: norm(v)===norm(ex.answer), yourText: v};
+  }
+  if(ex.type==="build"){
+    if(!session.builtSeq.length) return {empty:true};
+    var mine = session.builtSeq.map(function(x){ return x.c; });
+    var ok = mine.length===ex.answer.length && mine.every(function(c,i){ return c===ex.answer[i]; });
+    return {ok: ok, yourText: mine.join(" ")};
+  }
+  if(ex.type==="code"){
+    var code = $("codeEditor").value;
+    if(!code.trim()) return {empty:true};
+    try{
+      var out = runPython(code, ex.simInput);
+      var outBox = $("codeOut"); outBox.classList.add("show");
+      $("codeOutText").textContent = out.length ? out.join("\n") : "（没有输出：是不是忘了 print？）";
+      var ok = out.length===ex.expected.length && out.every(function(l,i){ return l===ex.expected[i]; });
+      return {ok: ok, yourText: code, ranOut: out};
+    }catch(e){
+      var ob = $("codeOut"); ob.classList.add("show");
+      $("codeOutText").textContent = "⚠️ 报错了：" + e.message;
+      return {ok:false, yourText: code, error: e.message};
+    }
+  }
+  return {ok:false};
+}
+$("checkBtn").addEventListener("click", function(){
+  if(!session) return;
+  var fb = $("feedback");
+  if(fb.classList.contains("show")){ advanceAfterFeedback(); return; }
+  if(session.step===0 && session.singleEx==null){ session.step=1; renderStep(); return; }
+  var ex = currentEx(); if(!ex) return;
+  var res = judge(ex);
+  if(res.empty){ toast("先写点东西，或者选一个答案再检查哦"); return; }
+
+  var exKey = session.lesson.id + "-" + (session.singleEx!=null ? session.singleEx : session.step-1);
+  if(res.ok){
+    var firstTry = !session.triedWrong[exKey];
+    if(firstTry && session.singleEx==null){ state.answered++; state.firstTryRight++; }
+    var gain = session.practice ? 2 : (firstTry ? 10 : 5);
+    session.xpGain += gain; session.coinsGain += session.practice ? 0 : (firstTry ? 3 : 1);
+    if(session.practice && session.mistakeIdx!=null){
+      state.mistakes.splice(session.mistakeIdx,1);
+      session.mistakeIdx = null;
+    }
+    fb.className = "feedback good show";
+    fb.innerHTML =
+      '<div class="fb-head"><span class="fb-check"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>' + pickPraise() + '</div>' +
+      '<div class="fb-body">'+ (firstTry ? "一次就对，漂亮！" : "改对了，错误也是学习的一部分。") +
+      ' <span class="fb-xp">+'+gain+' XP</span></div>' +
+      '<button class="btn block" id="fbNext">继续 →</button>';
+    $("lessonFoot").style.display = "none";
+    $("fbNext").addEventListener("click", advanceAfterFeedback);
+    playCorrect();
+    var fbr = fb.getBoundingClientRect();
+    burstAt(fbr.left + fbr.width / 2, Math.max(30, fbr.top + 6), 26);
+    floatXp("+" + gain + " XP", fbr.left + fbr.width / 2, fbr.top);
+  } else {
+    session.triedWrong[exKey] = true;
+    session.hearts--;
+    renderHearts();
+    // 记录错题（同一题不重复记）
+    var already = state.mistakes.some(function(m){ return m.lessonId===session.lesson.id && m.exIdx===(session.singleEx!=null?session.singleEx:session.step-1); });
+    if(!already && !session.practice){
+      state.mistakes.push({
+        lessonId: session.lesson.id,
+        exIdx: session.singleEx!=null ? session.singleEx : session.step-1,
+        q: ex.q, why: ex.explain.why
+      });
+    }
+    var dead = session.hearts<=0;
+    fb.className = "feedback bad show";
+    fb.innerHTML =
+      '<div class="fb-head">💔 答错了，扣 1 颗心' + (dead ? "（心用完了）" : "（还剩 "+session.hearts+" 颗）") + '</div>' +
+      '<div class="fb-body">' +
+        '<div class="sec"><b>错在哪</b>'+esc(ex.explain.wrong)+'</div>' +
+        '<div class="sec"><b>为什么</b>'+esc(ex.explain.why)+'</div>' +
+        '<div class="sec"><b>怎么改</b>'+esc(ex.explain.fix).replace(/\n/g,"<br/>")+'</div>' +
+        (res.error ? '<div class="sec"><b>电脑的报错</b>'+esc(res.error)+'</div>' : '') +
+        '<div class="sec" style="color:var(--ink-soft)">这道题已经收进错题本，之后可以去训练场把它练掉。</div>' +
+      '</div>' +
+      '<button class="btn red block" id="fbNext">'+(dead ? "看看结果" : "再试一次")+'</button>';
+    $("lessonFoot").style.display = "none";
+    $("lessonBody").classList.remove("shake"); void $("lessonBody").offsetWidth; $("lessonBody").classList.add("shake");
+    playWrong();
+    var hd = $("heartsDisplay");
+    hd.classList.remove("heart-hit"); void hd.offsetWidth; hd.classList.add("heart-hit");
+    $("fbNext").addEventListener("click", advanceAfterFeedback);
+  }
+  $("lessonBody").scrollTop = $("lessonBody").scrollHeight;
+});
+function advanceAfterFeedback(){
+  var fb = $("feedback");
+  var wasBad = fb.classList.contains("bad");
+  fb.className = "feedback"; fb.innerHTML = "";
+  $("lessonFoot").style.display = "";
+  if(session.hearts<=0){ finishLesson(false); return; }
+  if(wasBad){ renderStep(); return; } // 答错：重做本题
+  // 答对：进入下一步
+  if(session.singleEx!=null){ finishLesson(true); return; }
+  if(session.step >= session.lesson.exercises.length){ finishLesson(true); return; }
+  session.step++;
+  renderStep();
+}
+function finishLesson(passed){
+  var lesson = session.lesson;
+  var box = $("resultBox");
+  if(!passed){
+    playDefeat();
+    box.innerHTML =
+      '<div class="big-emoji-badge" style="background:var(--red-soft)"><svg viewBox="0 0 24 24" fill="#ff4b4b"><path d="M12 21s-7.5-4.9-9.8-9.2C.6 8.6 2.6 5 6.1 5c2 0 3.4 1.1 4.2 2.4h3.4C14.5 6.1 15.9 5 17.9 5c3.5 0 5.5 3.6 3.9 6.8C19.5 16.1 12 21 12 21z" transform="scale(0.92) translate(1,0)"/></svg></div>' +
+      '<h2>心用完了 💔</h2>' +
+      '<p>没关系，Boss 都是打几次才过的。<br/>错题已经收进错题本，先去训练场练一练，或者直接重打这一关。</p>' +
+      '<button class="btn block" id="rRetry">重新挑战本关</button>' +
+      '<button class="btn ghost block" id="rMap">回地图</button>';
+    showView("view-result");
+    var s = session;
+    $("rRetry").addEventListener("click", function(){ startLesson(s.lesson, false); });
+    $("rMap").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab(state.mistakes.length?"mistakes":"map"); });
+    return;
+  }
+  // 通关结算
+  var heartsLeft = session.hearts;
+  var stars = session.practice ? 0 : Math.max(1, heartsLeft); // 3心=3星,2心=2星,1心=1星
+  if(session.practice){
+    playFanfare(false);
+    launchConfetti(70);
+    box.innerHTML =
+      '<div class="big-emoji-badge" style="background:var(--green-soft)"><svg viewBox="0 0 24 24" fill="#58cc02"><path d="M9.5 16.2L5.8 12.5l-1.6 1.6 5.3 5.3L20 9l-1.6-1.6z"/></svg></div>' +
+      '<h2>错题练掉了！✅</h2>' +
+      '<p>这道题已经从错题本里消失。<br/>错题本还剩 '+state.mistakes.length+' 道，继续加油。</p>' +
+      '<button class="btn block" id="rMap">回错题本</button>' +
+      '<button class="btn ghost block" id="rMap2">回冒险地图</button>';
+    showView("view-result");
+    $("rMap").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab("mistakes"); });
+    $("rMap2").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab("map"); });
+    state.xp += session.xpGain;
+    return;
+  }
+  var bonus = lesson.boss ? 50 : 20;
+  var totalXp = session.xpGain + bonus;
+  state.xp += totalXp;
+  state.coins += session.coinsGain + (lesson.boss ? 20 : 5);
+  var prevStars = state.done[lesson.id] || 0;
+  if(stars > prevStars) state.done[lesson.id] = stars;
+  else if(!state.done[lesson.id]) state.done[lesson.id] = stars;
+  var isLast = lesson.id >= LESSONS.length;
+  var nextLesson = !isLast ? LESSONS[lesson.id] : null;
+  playFanfare(lesson.boss);
+  launchConfetti(lesson.boss ? 200 : 130);
+  if(lesson.boss) setTimeout(function(){ launchConfetti(120); }, 380);
+  for(var si = 0; si < stars; si++){
+    (function(idx){ setTimeout(function(){ playStarChime(idx); }, 60 + idx * 180); })(si);
+  }
+  box.innerHTML =
+    '<div class="result-stars">' + starSvg(stars>=1) + starSvg(stars>=2) + starSvg(stars>=3) + '</div>' +
+    '<h2>'+(lesson.boss ? "🏆 第一章毕业！" : "通关啦！")+'</h2>' +
+    '<p>'+(lesson.boss
+      ? "你打赢了新手村 Boss，字母篇的本事全部到手！<br/>第二章「单词篇」正在准备中，敬请期待。"
+      : "第"+lesson.id+"关「"+esc(lesson.title)+"」完成，下一关已经解锁。")+'</p>' +
+    '<div class="result-stats">' +
+      '<div class="result-stat"><div class="n" style="color:var(--yellow-dark)">+'+totalXp+'</div><div class="l">经验 XP（含通关奖励 '+bonus+'）</div></div>' +
+      '<div class="result-stat"><div class="n" style="color:var(--red)">'+heartsLeft+' / 3</div><div class="l">剩余爱心</div></div>' +
+      '<div class="result-stat"><div class="n" style="color:var(--blue-dark)">Lv.'+levelOf(state.xp)+'</div><div class="l">'+levelTitle(state.xp)+'</div></div>' +
+    '</div>' +
+    (nextLesson ? '<button class="btn block" id="rNext">再来一关：第'+nextLesson.id+'关 '+esc(nextLesson.title)+' →</button>' : '') +
+    '<button class="btn ghost block" id="rMap">回冒险地图</button>';
+  showView("view-result");
+  if(nextLesson){
+    $("rNext").addEventListener("click", function(){ startLesson(nextLesson, false); });
+  }
+  $("rMap").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab("map"); });
+}
+</script>
+</body>
+</html>
