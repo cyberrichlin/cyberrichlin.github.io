@@ -96,8 +96,12 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
 /* ---------- top stats bar ---------- */
 .statsbar{
   background:var(--bg);flex:none;
-  display:flex;align-items:center;gap:10px;padding:12px 16px 10px;
+  display:flex;align-items:center;gap:10px;padding:12px 16px 10px;flex-wrap:wrap;
   border-bottom:2px solid var(--line);
+}
+.sync-pill{
+  font-size:12px;font-weight:800;color:var(--ink-soft);white-space:nowrap;
+  background:var(--surface);border:2px solid var(--line);border-radius:999px;padding:4px 10px;
 }
 .stat{display:flex;align-items:center;gap:5px;font-weight:900;font-size:15.5px;min-height:36px;}
 .stat svg{width:21px;height:21px;flex:none;}
@@ -356,10 +360,11 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
       <div class="feature-chip">⭐ <span>经验升级</span></div>
     </div>
     <div class="name-card">
-      <label for="nameInput">给你的勇者起个名字，第一次打开输入一次就行</label>
+      <label for="nameInput">输入你的勇者名，进度按这个名字存到云端</label>
       <input class="name-input" id="nameInput" type="text" maxlength="12" placeholder="比如：小生" autocomplete="off" />
       <div class="name-err" id="nameErr"></div>
       <button class="btn block" id="startBtn">开始冒险 →</button>
+      <div style="color:var(--ink-soft);font-weight:700;font-size:13.5px;line-height:1.65;margin-top:10px">以前玩过？输入<b>同一个</b>勇者名，云端进度会自动回来，刷新、换设备都不怕。同名就是同一个人，名字别告诉别人。</div>
     </div>
     <div class="roadmap">
       <h3>🗺️ 冒险路线（从简到繁）</h3>
@@ -389,6 +394,7 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
         <span id="statDone">0/9</span>
       </div>
       <div class="stat level" id="statLevel">Lv.1 新手勇者</div>
+      <div class="sync-pill" id="syncPill" title="云端同步状态">● 本地保存中</div>
       <button class="sound-btn" id="soundBtn" aria-label="开关音效" title="开关音效">🔊</button>
     </div>
 
@@ -419,7 +425,7 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
     <div id="tab-me" style="display:none">
       <div class="panel">
         <h2>🧑‍🎓 我的勇者</h2>
-        <p class="sub">这一版的进度先记在这台设备打开的页面里；云端同步版接好后，手机和电脑会自动接上。</p>
+        <p class="sub">进度会自动同步到云端：手机和电脑用同一个勇者名打开，就是同一份进度。断网时先存本机，有网自动同步。</p>
         <div class="me-card">
           <div class="avatar-line">
             <div class="avatar-circle">
@@ -441,6 +447,18 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
         <div class="me-card">
           <div style="font-weight:900;margin-bottom:6px">🏅 称号之路</div>
           <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8" id="meRoad"></div>
+        </div>
+        <div class="me-card">
+          <div style="font-weight:900;margin-bottom:6px">☁️ 云端同步</div>
+          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8" id="meSync">正在连接云端…</div>
+          <div style="height:10px"></div>
+          <button class="btn ghost small" id="switchUserBtn">切换勇者名</button>
+        </div>
+        <div class="me-card">
+          <div style="font-weight:900;margin-bottom:6px">📦 更新 GitHub 上的版本</div>
+          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8">覆盖 GitHub 只需要传<b>一个</b>文件：点下面按钮下载 <b>xiaosheng-python.html</b>，传到 <b>cyberrichlin.github.io</b> 仓库根目录，覆盖同名文件就行，其他文件都不用传。</div>
+          <div style="height:10px"></div>
+          <button class="btn blue small" id="dlDeployBtn">⬇️ 下载 xiaosheng-python.html</button>
         </div>
       </div>
     </div>
@@ -488,6 +506,8 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
 <canvas id="fxCanvas" aria-hidden="true"></canvas>
 <div class="toast" id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
 /* ============================================================
    小生Python V1 · 第一章 字母篇（9 关）
@@ -804,6 +824,192 @@ var state = {
 function levelOf(xp){ return Math.min(6, Math.floor(xp/100)+1); }
 function levelTitle(xp){ return TITLES[levelOf(xp)-1]; }
 
+/* ============================================================
+   本地存档 + Firebase Firestore 云同步
+   以勇者名（用户名）为键：users/<用户名>
+   登录后先读云端并与本机合并；断网先存本机，有网自动补同步
+   ============================================================ */
+var firebaseConfig = {
+  apiKey: "AIzaSyDMzvJkkwGAsFZmKwkOQFegBn9tzIPsKBk",
+  authDomain: "xiaosheng-python.firebaseapp.com",
+  projectId: "xiaosheng-python",
+  storageBucket: "xiaosheng-python.firebasestorage.app",
+  messagingSenderId: "119017704032",
+  appId: "1:119017704032:web:9f50cbeda69d20441f1105",
+  measurementId: "G-DM3LGCZ2HY"
+};
+var fbDb = null;
+var syncDirty = false, syncTimer = null;
+var pushInFlight = false, pushQueued = false;
+var lastLocalMs = 0;
+/* 本地存储可用性探测：预览、隐私模式等环境里 localStorage 可能不可用，
+   这时用内存顶替本次会话，并完全依靠云端存档跨刷新恢复 */
+var storageOk = (function(){
+  try{ localStorage.setItem("__xs_probe__","1"); localStorage.removeItem("__xs_probe__"); return true; }
+  catch(e){ return false; }
+})();
+var memStore = {};
+function storeSet(k,v){ if(storageOk){ try{ localStorage.setItem(k,v); return; }catch(e){} } memStore[k]=v; }
+function storeGet(k){ if(storageOk){ try{ return localStorage.getItem(k); }catch(e){} } return (k in memStore) ? memStore[k] : null; }
+function storeRemove(k){ if(storageOk){ try{ localStorage.removeItem(k); }catch(e){} } delete memStore[k]; }
+
+function setSyncStatus(s){
+  var pill = document.getElementById("syncPill");
+  if(pill){
+    if(s === "synced") pill.innerHTML = '<span style="color:var(--green-dark)">●</span> 已同步';
+    else if(s === "syncing") pill.innerHTML = '<span style="color:var(--blue-dark)">●</span> 同步中';
+    else pill.innerHTML = '<span style="color:#e8a100">●</span> 本地保存中';
+  }
+  var me = document.getElementById("meSync");
+  if(me){
+    me.textContent =
+      s === "synced" ? "已同步到云端。手机和电脑用同一个勇者名打开，就是同一份进度。" :
+      s === "syncing" ? "正在和云端同步，请稍等…" :
+      "现在离线或云端暂时连不上，进度已先存好；有网后会自动同步，不用管它。万一本机存档丢了，重新输入同一个勇者名就能从云端找回。";
+  }
+  var notes = document.querySelectorAll(".sync-note-live");
+  for(var i=0;i<notes.length;i++){
+    notes[i].textContent =
+      s === "synced" ? "✅ 进度已存到云端，现在刷新也不会丢。" :
+      s === "syncing" ? "☁️ 正在把进度存到云端，别急着刷新…" :
+      "⚠️ 云端暂时连不上，进度已先存好，联网后会自动补同步。";
+  }
+}
+function initFirebase(){
+  if(fbDb) return true;
+  try{
+    if(typeof firebase === "undefined" || !firebase.initializeApp) return false;
+    if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    fbDb = firebase.firestore();
+    return !!fbDb;
+  }catch(e){
+    try{ fbDb = firebase.firestore(); return !!fbDb; }catch(e2){ return false; }
+  }
+}
+function docIdFor(name){
+  if(name && name !== "." && name !== ".." && name.indexOf("/") < 0 && name.indexOf("__") !== 0) return name;
+  return encodeURIComponent(name);
+}
+function snapshot(){
+  return {
+    name: state.name, xp: state.xp, coins: state.coins, done: state.done,
+    answered: state.answered, firstTryRight: state.firstTryRight, mistakes: state.mistakes
+  };
+}
+function applyData(d){
+  if(!d) return;
+  state.xp = d.xp || 0;
+  state.coins = d.coins || 0;
+  state.done = d.done || {};
+  state.answered = d.answered || 0;
+  state.firstTryRight = d.firstTryRight || 0;
+  state.mistakes = Array.isArray(d.mistakes) ? d.mistakes : [];
+}
+function localKey(name){ return "xs_python_state_" + name; }
+function saveLocal(){
+  if(!state.name) return;
+  var data = snapshot();
+  data.updatedAtMs = Date.now();
+  lastLocalMs = data.updatedAtMs;
+  storeSet(localKey(state.name), JSON.stringify(data));
+  storeSet("xs_python_last_user", state.name);
+}
+function loadLocal(name){
+  var raw = storeGet(localKey(name));
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
+/* 合并规则：XP/金币取大值，已通关卡取并集（星级取高），
+   正确率计数取 XP 更高的一方，错题本取更新时间较新的一方（避免练掉的错题复活） */
+function mergeData(local, remote){
+  if(!local) return remote;
+  if(!remote) return local;
+  var winner;
+  if((remote.xp || 0) !== (local.xp || 0)) winner = (remote.xp || 0) > (local.xp || 0) ? remote : local;
+  else winner = (remote.updatedAtMs || 0) >= (local.updatedAtMs || 0) ? remote : local;
+  var done = {};
+  [local.done || {}, remote.done || {}].forEach(function(dd){
+    Object.keys(dd).forEach(function(k){ done[k] = Math.max(done[k] || 0, dd[k] || 0); });
+  });
+  var newer = (remote.updatedAtMs || 0) >= (local.updatedAtMs || 0) ? remote : local;
+  return {
+    name: state.name,
+    xp: Math.max(local.xp || 0, remote.xp || 0),
+    coins: Math.max(local.coins || 0, remote.coins || 0),
+    done: done,
+    answered: winner.answered || 0,
+    firstTryRight: winner.firstTryRight || 0,
+    mistakes: Array.isArray(newer.mistakes) ? newer.mistakes : [],
+    updatedAtMs: Math.max(local.updatedAtMs || 0, remote.updatedAtMs || 0)
+  };
+}
+function pushCloud(){
+  if(!state.name) return;
+  saveLocal();
+  if(!navigator.onLine || !initFirebase()){ syncDirty = true; setSyncStatus("local"); return; }
+  if(pushInFlight){ pushQueued = true; return; }
+  pushInFlight = true;
+  setSyncStatus("syncing");
+  var data = snapshot();
+  data.updatedAtMs = Date.now();
+  try{ data.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); }catch(e){}
+  fbDb.collection("users").doc(docIdFor(state.name)).set(data).then(function(){
+    pushInFlight = false;
+    if(pushQueued){ pushQueued = false; pushCloud(); return; }
+    syncDirty = false;
+    setSyncStatus("synced");
+  }).catch(function(){
+    pushInFlight = false;
+    syncDirty = true;
+    setSyncStatus("local");
+  });
+}
+function scheduleSync(){
+  saveLocal();
+  setSyncStatus(navigator.onLine ? "syncing" : "local");
+  if(syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushCloud, 250);
+}
+/* 立即存档：通关结算等关键时刻不等防抖，马上写云端 */
+function flushSync(){
+  if(syncTimer){ clearTimeout(syncTimer); syncTimer = null; }
+  pushCloud();
+}
+/* 登录后：拉云端 → 与本机合并 → 回写云端 */
+function pullAndMerge(done){
+  var finished = false;
+  function fin(){ if(done) done(); }
+  if(!navigator.onLine || !initFirebase()){ setSyncStatus("local"); fin(); return; }
+  setSyncStatus("syncing");
+  var timer = setTimeout(function(){
+    if(finished) return; finished = true;
+    syncDirty = true; setSyncStatus("local"); pushCloud(); fin();
+  }, 6000);
+  fbDb.collection("users").doc(docIdFor(state.name)).get().then(function(snap){
+    if(finished) return; finished = true; clearTimeout(timer);
+    if(snap.exists){
+      var local = loadLocal(state.name);
+      var cur = snapshot(); cur.updatedAtMs = lastLocalMs || Date.now();
+      if(local) local = mergeData(local, cur); else local = cur;
+      var merged = mergeData(local, snap.data());
+      applyData(merged);
+      saveLocal();
+    }
+    pushCloud();
+    fin();
+  }).catch(function(){
+    if(finished) return; finished = true; clearTimeout(timer);
+    syncDirty = true; setSyncStatus("local"); pushCloud(); fin();
+  });
+}
+window.addEventListener("online", function(){ if(state.name) pushCloud(); });
+window.addEventListener("offline", function(){ setSyncStatus("local"); });
+/* 页面被刷新、关掉或切到后台时，立刻把最新进度存好并推云端，避免定时器被打断丢进度 */
+window.addEventListener("pagehide", function(){ if(state.name){ saveLocal(); flushSync(); } });
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "hidden" && state.name){ saveLocal(); flushSync(); }
+});
+
 var session = null; // {lesson, stepIndex(0=teach), hearts, xpGain, coinsGain, firstTry:Set, practice:bool, singleEx}
 
 function $(id){ return document.getElementById(id); }
@@ -826,10 +1032,14 @@ $("startBtn").addEventListener("click", function(){
   if(!name){ $("nameErr").textContent="先给勇者起个名字吧，一个字也行。"; $("nameInput").focus(); return; }
   $("nameErr").textContent="";
   state.name = name;
+  var local = loadLocal(name);
+  if(local) applyData(local);
+  saveLocal();
   renderMain();
   showView("view-main");
   toast("欢迎来到新手村，" + name + "！");
   playPop();
+  pullAndMerge(function(){ renderMain(); });
 });
 $("nameInput").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
 
@@ -1439,6 +1649,7 @@ $("checkBtn").addEventListener("click", function(){
       state.mistakes.splice(session.mistakeIdx,1);
       session.mistakeIdx = null;
     }
+    scheduleSync();
     fb.className = "feedback good show";
     fb.innerHTML =
       '<div class="fb-head"><span class="fb-check"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5L19.5 7"/></svg></span>' + pickPraise() + '</div>' +
@@ -1464,6 +1675,7 @@ $("checkBtn").addEventListener("click", function(){
         q: ex.q, why: ex.explain.why
       });
     }
+    scheduleSync();
     var dead = session.hearts<=0;
     fb.className = "feedback bad show";
     fb.innerHTML =
@@ -1531,6 +1743,7 @@ function finishLesson(passed){
     $("rMap").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab("mistakes"); });
     $("rMap2").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab("map"); });
     state.xp += session.xpGain;
+    flushSync();
     return;
   }
   var bonus = lesson.boss ? 50 : 20;
@@ -1540,6 +1753,7 @@ function finishLesson(passed){
   var prevStars = state.done[lesson.id] || 0;
   if(stars > prevStars) state.done[lesson.id] = stars;
   else if(!state.done[lesson.id]) state.done[lesson.id] = stars;
+  flushSync();
   var isLast = lesson.id >= LESSONS.length;
   var nextLesson = !isLast ? LESSONS[lesson.id] : null;
   playFanfare(lesson.boss);
@@ -1559,6 +1773,7 @@ function finishLesson(passed){
       '<div class="result-stat"><div class="n" style="color:var(--red)">'+heartsLeft+' / 3</div><div class="l">剩余爱心</div></div>' +
       '<div class="result-stat"><div class="n" style="color:var(--blue-dark)">Lv.'+levelOf(state.xp)+'</div><div class="l">'+levelTitle(state.xp)+'</div></div>' +
     '</div>' +
+    '<div class="sync-note-live" style="font-weight:800;font-size:14px;color:var(--ink-soft);margin:-6px 0 16px">☁️ 正在把进度存到云端…</div>' +
     (nextLesson ? '<button class="btn block" id="rNext">再来一关：第'+nextLesson.id+'关 '+esc(nextLesson.title)+' →</button>' : '') +
     '<button class="btn ghost block" id="rMap">回冒险地图</button>';
   showView("view-result");
@@ -1567,6 +1782,65 @@ function finishLesson(passed){
   }
   $("rMap").addEventListener("click", function(){ session=null; renderMain(); showView("view-main"); switchTab("map"); });
 }
+/* ================= 下载 GitHub 部署文件 =================
+   把当前页面还原成一份干净的单文件（清掉本次游玩产生的界面状态），
+   下载名固定为 xiaosheng-python.html，传到仓库根目录覆盖同名文件即可 */
+$("dlDeployBtn").addEventListener("click", function(){
+  try{
+    var clone = document.documentElement.cloneNode(true);
+    var views = clone.querySelectorAll(".view");
+    for(var i=0;i<views.length;i++) views[i].classList.remove("active");
+    var w = clone.querySelector("#view-welcome"); if(w) w.classList.add("active");
+    ["path","mistakeList","lessonBody","feedback","resultBox"].forEach(function(id){
+      var el = clone.querySelector("#"+id); if(el) el.innerHTML = "";
+    });
+    var fbEl = clone.querySelector("#feedback"); if(fbEl) fbEl.className = "feedback";
+    var lf = clone.querySelector("#lessonFoot"); if(lf) lf.style.display = "";
+    var ni = clone.querySelector("#nameInput"); if(ni){ ni.value = ""; ni.removeAttribute("value"); }
+    var ne = clone.querySelector("#nameErr"); if(ne) ne.textContent = "";
+    var tm = clone.querySelector("#tab-map"); if(tm) tm.style.display = "";
+    var tk = clone.querySelector("#tab-mistakes"); if(tk) tk.style.display = "none";
+    var te = clone.querySelector("#tab-me"); if(te) te.style.display = "none";
+    var tabs = clone.querySelectorAll(".tabbar button");
+    for(var j=0;j<tabs.length;j++) tabs[j].classList.remove("on");
+    var t1 = clone.querySelector("#tabBtnMap"); if(t1) t1.classList.add("on");
+    var bd = clone.querySelector("#mistakeBadge"); if(bd){ bd.style.display = "none"; bd.textContent = "0"; }
+    var sb = clone.querySelector("#soundBtn"); if(sb) sb.textContent = "🔊";
+    var sp = clone.querySelector("#syncPill"); if(sp) sp.innerHTML = "● 本地保存中";
+    var tst = clone.querySelector("#toast"); if(tst){ tst.className = "toast"; tst.textContent = ""; }
+    var html = "<!doctype html>\n" + clone.outerHTML;
+    var blob = new Blob([html], {type:"text/html;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "xiaosheng-python.html";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    toast("已下载 xiaosheng-python.html，传到 GitHub 覆盖同名文件就行");
+  }catch(e){
+    toast("下载失败，刷新后再试一次");
+  }
+});
+
+/* ================= 切换勇者 + 自动登录 ================= */
+$("switchUserBtn").addEventListener("click", function(){
+  session = null;
+  state = { name:"", xp:0, coins:0, done:{}, answered:0, firstTryRight:0, mistakes:[] };
+  storeRemove("xs_python_last_user");
+  $("nameInput").value = "";
+  setSyncStatus("local");
+  showView("view-welcome");
+});
+(function autoLogin(){
+  var last = storeGet("xs_python_last_user");
+  if(!last) return;
+  var local = loadLocal(last);
+  if(!local) return;
+  state.name = last;
+  applyData(local);
+  renderMain();
+  showView("view-main");
+  pullAndMerge(function(){ renderMain(); });
+})();
 </script>
 </body>
 </html>
