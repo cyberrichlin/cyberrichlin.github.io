@@ -426,6 +426,12 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
         <div class="row"><span id="xpLabel">Lv.1 新手勇者</span><span id="xpNums">0 / 100 XP</span></div>
         <div class="bar"><i id="xpBar" style="width:0%"></i></div>
       </div>
+      <div class="me-card" id="noPwdBanner" style="display:none;border:2px solid #ffc800;background:#fff8e1">
+        <div style="font-weight:900;margin-bottom:6px">🔑 这个账号还没设密码</div>
+        <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8">没设密码，换个地方打开就会一直让你「重新设置密码」。现在花 10 秒设一个，以后手机、电脑都用勇者名 + 这个密码登录，进度自动回来。</div>
+        <div style="height:10px"></div>
+        <button class="btn blue small" id="noPwdBtn">去设密码 →</button>
+      </div>
       <div class="path" id="path"></div>
       <div class="chapter-next">🔒 第三章「语法篇」：打完第 19 关 Boss 后解锁<br/>if 判断、for 循环，把「单词」连成「句子」</div>
       <div style="height:18px"></div>
@@ -475,8 +481,8 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
           <button class="btn ghost small" id="switchUserBtn">退出登录 / 切换账号</button>
         </div>
         <div class="me-card">
-          <div style="font-weight:900;margin-bottom:6px">🔑 修改密码</div>
-          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8">换设备登录时要输这个密码。改完后，其他设备要用新密码登录。</div>
+          <div style="font-weight:900;margin-bottom:6px" id="pwdCardTitle">🔑 修改密码</div>
+          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8" id="pwdCardHint">换设备登录时要输这个密码。改完后，其他设备要用新密码登录。</div>
           <div style="height:10px"></div>
           <input class="name-input" id="newPwdInput" type="password" maxlength="32" placeholder="新密码（至少 4 位）" autocomplete="new-password" />
           <div style="height:10px"></div>
@@ -1178,7 +1184,7 @@ var LESSONS = [
 
 /* ================= 状态 ================= */
 var TITLES = ["新手勇者","见习勇者","铁剑勇者","银甲勇者","金光勇者","屠龙勇者"];
-var APP_VERSION = "v6-2026-11-12";
+var APP_VERSION = "v7-2026-11-12";
 var state = {
   name:"", xp:0, coins:0,
   done:{},            // lessonId -> stars
@@ -1304,8 +1310,8 @@ function fromFsValue(v){
   return null;
 }
 /* 读云端：成功返回进度对象；云端还没有这份存档返回 null；失败/超时抛错 */
-function cloudGet(name){
-  return fetchTimeout(fsDocUrl(name), { method: "GET" }, 5000).then(function(r){
+function cloudGet(name, ms){
+  return fetchTimeout(fsDocUrl(name), { method: "GET" }, ms || 5000).then(function(r){
     if(r.status === 404) return null;
     if(!r.ok) throw new Error("http " + r.status);
     return r.json();
@@ -1316,11 +1322,19 @@ function cloudGet(name){
     return o;
   });
 }
-/* 写云端：整份覆盖写入（调用方保证写之前已和云端合并过） */
+/* 写云端：带 updateMask 的 PATCH，只更新这次带上的字段，没带上的字段云端原样不动。
+   关键修复：本机密码哈希为空时，pwdHash 干脆不带——以前整份覆盖写，
+   没设过密码的设备（比如自动登录的老设备）每次推送都把云端密码冲回空，
+   结果每换一个地方打开都要「重新设置密码」。带 mask 后这种冲掉不可能再发生。 */
 function cloudSet(data){
-  var fields = {};
-  Object.keys(data).forEach(function(k){ fields[k] = toFsValue(data[k]); });
-  return fetchTimeout(fsDocUrl(), {
+  var fields = {}, names = [];
+  Object.keys(data).forEach(function(k){
+    if(k === "pwdHash" && !data[k]) return;
+    fields[k] = toFsValue(data[k]);
+    names.push(k);
+  });
+  var qs = names.map(function(k){ return "updateMask.fieldPaths=" + encodeURIComponent(k); }).join("&");
+  return fetchTimeout(fsDocUrl() + (qs ? "?" + qs : ""), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fields: fields })
@@ -1471,10 +1485,12 @@ function pullAndMerge(done, attempt){
     });
   }, function(){
     syncDirty = true;
-    setSyncStatus("local");
     if(attempt < 2 && state.name){
+      /* 还在自动重试就继续显示「同步中」，别一会儿本地、一会儿同步地来回跳 */
+      setSyncStatus("syncing");
       setTimeout(function(){ if(state.name && !cloudLoaded) pullAndMerge(done, attempt + 1); }, 4000);
     } else {
+      setSyncStatus("local");
       fin();
     }
   });
@@ -1511,17 +1527,64 @@ function escA(s){ return esc(s).replace(/"/g,"&quot;"); }
    密码只存 SHA-256 哈希，不存明文。
    老账号（云端还没有密码）第一次登录时，输入的密码即被设为该账号密码，不会被锁在门外。
    本台设备登录成功后会记住账号，下次打开自动进入；换设备必须输对密码。 */
-function hashPwd(name, pwd){
-  var s = "xs-pwd:" + name + ":" + pwd;
-  if(window.crypto && crypto.subtle && window.TextEncoder){
-    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function(buf){
-      var arr = Array.prototype.map.call(new Uint8Array(buf), function(b){ return ("0"+b.toString(16)).slice(-2); });
-      return arr.join("");
-    });
+/* 纯 JS 版 SHA-256：结果与浏览器原生 crypto.subtle 完全一致（已逐字校验），
+   但不挑环境——以前在没有 subtle 的浏览器/内嵌网页里会退回另一套简易哈希，
+   同一个密码在不同设备算出两个值，换设备就报「密码不对」。现在任何设备算的都一样。 */
+function sha256Hex(ascii){
+  ascii = unescape(encodeURIComponent(ascii));
+  function rr(v, a){ return (v >>> a) | (v << (32 - a)); }
+  var maxWord = Math.pow(2, 32), i, j, result = "";
+  var words = [], asciiBitLength = ascii.length * 8;
+  var hash = sha256Hex.h = sha256Hex.h || [], k = sha256Hex.k = sha256Hex.k || [];
+  var primeCounter = k.length, isComposite = {};
+  for(var candidate = 2; primeCounter < 64; candidate++){
+    if(!isComposite[candidate]){
+      for(i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (Math.pow(candidate, 1/3) * maxWord) | 0;
+    }
   }
-  var h1 = 5381, h2 = 52711;
-  for(var i=0;i<s.length;i++){ var c = s.charCodeAt(i); h1 = ((h1*33) ^ c) >>> 0; h2 = ((h2*31) ^ c) >>> 0; }
-  return "fb" + h1.toString(16) + h2.toString(16);
+  ascii += "\x80";
+  while(ascii.length % 64 - 56) ascii += "\x00";
+  for(i = 0; i < ascii.length; i++){
+    j = ascii.charCodeAt(i);
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = asciiBitLength;
+  for(j = 0; j < words.length;){
+    var w = words.slice(j, j += 16), oldHash = hash;
+    hash = hash.slice(0, 8);
+    for(i = 0; i < 64; i++){
+      var w15 = w[i-15], w2 = w[i-2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25))
+        + ((e & hash[5]) ^ ((~e) & hash[6]))
+        + k[i]
+        + (w[i] = (i < 16) ? w[i] : (
+            w[i-16]
+            + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3))
+            + w[i-7]
+            + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))
+          ) | 0);
+      var temp2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22))
+        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash = [(temp1 + temp2) | 0].concat(hash);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+    for(i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+  for(i = 0; i < 8; i++){
+    for(j = 3; j + 1; j--){
+      var b = (hash[i] >> (j * 8)) & 255;
+      result += ((b < 16) ? "0" : "") + b.toString(16);
+    }
+  }
+  return result;
+}
+function hashPwd(name, pwd){
+  return sha256Hex("xs-pwd:" + name + ":" + pwd);
 }
 function enterGame(name, welcomeBack){
   cloudLoaded = false;
@@ -1539,6 +1602,7 @@ function loginFail(msg){
   btn.disabled = false; btn.textContent = "开始冒险 →";
   $("nameErr").textContent = msg;
 }
+var offlineArmName = ""; // 云端连不上、且本机没存档时，记住已提醒过的名字：再点一次才离线建新账号
 $("startBtn").addEventListener("click", function(){
   var name = $("nameInput").value.trim();
   var pwd = $("pwdInput").value;
@@ -1548,44 +1612,61 @@ $("startBtn").addEventListener("click", function(){
   $("nameErr").textContent="";
   var btn = $("startBtn");
   btn.disabled = true; btn.textContent = "正在登录…";
-  hashPwd(name, pwd).then(function(hash){
-    state.name = name;
-    cloudGet(name).then(function(remote){
+  var hash = hashPwd(name, pwd);
+  state.name = name;
+  function doneLogin(welcomeBack){
+    btn.disabled = false; btn.textContent = "开始冒险 →";
+    enterGame(name, welcomeBack);
+  }
+  function tryCloud(att){
+    /* 登录这一步给足 6 秒并自动重试一次：手机网络慢时，
+       以前 5 秒一到就掉进离线分支，把老账号当新账号进，进度看着就像丢了 */
+    cloudGet(name, 6000).then(function(remote){
+      offlineArmName = "";
       var cloudHash = remote && remote.pwdHash;
       if(cloudHash){
         if(cloudHash !== hash){ state.name=""; loginFail("密码不对，这个账号已经设过密码了。再想想，或者换个勇者名重新开始。"); return; }
         state.pwdHash = cloudHash;
-        btn.disabled = false; btn.textContent = "开始冒险 →";
-        enterGame(name, true);
+        doneLogin(true);
         return;
       }
       /* 云端没有密码：新账号，或老账号第一次设密码 */
       if(pwd.length < 4){ state.name=""; loginFail("密码至少 4 位，再定一个长一点的。"); return; }
       if(pwd2 && pwd2 !== pwd){ state.name=""; loginFail("两次输入的密码不一样，确认密码那栏再输一遍。"); return; }
       state.pwdHash = hash;
-      btn.disabled = false; btn.textContent = "开始冒险 →";
-      enterGame(name, !!remote);
+      doneLogin(!!remote);
       flushSync();
       toast(remote ? "密码已设置好，下次要用这个密码登录" : "账号创建成功，密码已设置好");
     }, function(){
-      /* 云端暂时连不上：用本机存档 + 本机存的密码哈希兜底登录，联网后自动同步 */
+      if(att < 1){ btn.textContent = "云端有点慢，正在重试…"; tryCloud(att + 1); return; }
+      /* 云端确实连不上：有本机存档就按本机记录离线登录；
+         本机也没存档时，先把情况说清楚，绝不把老账号当新账号静默进入 */
       var local = loadLocal(name);
       if(local && local.pwdHash){
         if(local.pwdHash !== hash){ state.name=""; loginFail("密码不对（现在是离线状态，按本机记录校验）。"); return; }
         state.pwdHash = local.pwdHash;
-        btn.disabled = false; btn.textContent = "开始冒险 →";
-        enterGame(name, true);
+        doneLogin(true);
         return;
       }
-      if(pwd.length < 4){ state.name=""; loginFail("密码至少 4 位，再定一个长一点的。"); return; }
-      if(pwd2 && pwd2 !== pwd){ state.name=""; loginFail("两次输入的密码不一样，确认密码那栏再输一遍。"); return; }
-      state.pwdHash = hash;
-      btn.disabled = false; btn.textContent = "开始冒险 →";
-      enterGame(name, !!local);
+      if(local){
+        state.pwdHash = hash;
+        doneLogin(true);
+        flushSync();
+        return;
+      }
+      if(offlineArmName === name){
+        offlineArmName = "";
+        state.pwdHash = hash;
+        doneLogin(false);
+        toast("已离线创建新账号，联网后会自动同步");
+        return;
+      }
+      offlineArmName = name;
+      state.name = "";
+      loginFail("连不上云端，没法确认「" + name + "」以前玩没玩过。旧进度不会丢（都存在云端），检查网络后再点一次开始冒险就行；如果这是第一次用的新名字，再点一次就会离线创建新账号。");
     });
-  }, function(){
-    loginFail("密码处理失败，刷新页面再试一次。");
-  });
+  }
+  tryCloud(0);
 });
 $("nameInput").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
 $("pwdInput").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
@@ -1604,6 +1685,8 @@ function renderMain(){
   $("xpLabel").textContent = "Lv." + lv + " " + levelTitle(state.xp);
   $("xpNums").textContent = inLevel + " / 100 XP" + (lv>=6 ? "（已满级）" : "");
   $("xpBar").style.width = (lv>=6 ? 100 : inLevel) + "%";
+  var npb = $("noPwdBanner");
+  if(npb) npb.style.display = state.pwdHash ? "none" : "";
   renderPath();
   renderMistakes();
   renderMe();
@@ -1688,6 +1771,11 @@ function renderMe(){
     return (got||cur ? "✅ " : "🔒 ") + "Lv." + (i+1) + " " + t + (cur ? " ← 你在这里" : "");
   }).join("<br/>");
   $("meRoad").innerHTML = road + "<br/><span style='font-size:13px'>每 100 XP 升一级，通关和答对题目都能拿到 XP。</span>";
+  var pt = $("pwdCardTitle"), ph = $("pwdCardHint");
+  if(pt) pt.textContent = state.pwdHash ? "🔑 修改密码" : "🔑 设置密码（还没设置）";
+  if(ph) ph.textContent = state.pwdHash
+    ? "换设备登录时要输这个密码。改完后，其他设备要用新密码登录。"
+    : "这个账号还没设密码！设好后，换设备用勇者名 + 密码就能找回全部进度；一直不设，每换一个地方都会让你重新设置。";
 }
 function switchTab(tab){
   $("tab-map").style.display = tab==="map" ? "" : "none";
@@ -2542,6 +2630,7 @@ $("dlDeployBtn").addEventListener("click", function(){
       var pi = clone.querySelector("#"+pid); if(pi){ pi.value = ""; pi.removeAttribute("value"); }
     });
     var ub = clone.querySelector("#updBanner"); if(ub) ub.classList.remove("show");
+    var npb2 = clone.querySelector("#noPwdBanner"); if(npb2) npb2.style.display = "none";
     var ne = clone.querySelector("#nameErr"); if(ne) ne.textContent = "";
     var tm = clone.querySelector("#tab-map"); if(tm) tm.style.display = "";
     var tk = clone.querySelector("#tab-mistakes"); if(tk) tk.style.display = "none";
@@ -2590,12 +2679,17 @@ $("chgPwdBtn").addEventListener("click", function(){
   var np = $("newPwdInput").value;
   if(!state.name){ toast("先登录再改密码"); return; }
   if(!np || np.length < 4){ toast("新密码至少 4 位"); return; }
-  hashPwd(state.name, np).then(function(h){
-    state.pwdHash = h;
-    $("newPwdInput").value = "";
-    flushSync();
-    toast("新密码已保存，下次登录用新密码");
-  }, function(){ toast("改密码失败，再试一次"); });
+  var wasSet = !!state.pwdHash;
+  state.pwdHash = hashPwd(state.name, np);
+  $("newPwdInput").value = "";
+  saveLocal();
+  renderMain();
+  flushSync();
+  toast(wasSet ? "新密码已保存，下次登录用新密码" : "密码设置好了！以后换设备用勇者名 + 这个密码就能找回进度");
+});
+$("noPwdBtn").addEventListener("click", function(){
+  switchTab("me");
+  setTimeout(function(){ var i = $("newPwdInput"); if(i) i.focus(); }, 60);
 });
 
 /* ================= 版本自动更新 =================
