@@ -449,7 +449,7 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
     <div id="tab-me" style="display:none">
       <div class="panel">
         <h2>🧑‍🎓 我的勇者</h2>
-        <p class="sub">进度会自动同步到云端：手机和电脑用同一个勇者名打开，就是同一份进度。断网时先存本机，有网自动同步。</p>
+        <p class="sub">进度会自动同步到云端：手机和电脑用同一个勇者名打开，就是同一份进度。每次同步都会先比对最后更新时间，哪边的整份进度更新就用哪边的——云端更新时，本机整份换成云端那份（换掉前会先备份本机这份，下面能恢复）。断网时先存本机，有网自动同步。</p>
         <div class="me-card">
           <div class="avatar-line">
             <div class="avatar-circle">
@@ -479,6 +479,10 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
           <button class="btn blue small" id="retrySyncBtn">🔄 重新从云端拉取进度</button>
           <span style="display:inline-block;width:8px"></span>
           <button class="btn ghost small" id="switchUserBtn">退出登录 / 切换账号</button>
+          <div id="backupRow" style="display:none;margin-top:10px;color:var(--ink-soft);font-weight:700;font-size:13.5px;line-height:1.7">
+            本机进度曾被云端较新的进度覆盖，覆盖前的本机那份备份还在：<span id="backupInfo"></span><br/>
+            <button class="btn ghost small" id="restoreBackupBtn" style="margin-top:6px">↩️ 恢复被覆盖前的本机进度</button>
+          </div>
         </div>
         <div class="me-card">
           <div style="font-weight:900;margin-bottom:6px" id="pwdCardTitle">🔑 修改密码</div>
@@ -1184,7 +1188,7 @@ var LESSONS = [
 
 /* ================= 状态 ================= */
 var TITLES = ["新手勇者","见习勇者","铁剑勇者","银甲勇者","金光勇者","屠龙勇者"];
-var APP_VERSION = "v7-2026-11-12";
+var APP_VERSION = "v8-2026-11-12";
 var state = {
   name:"", xp:0, coins:0,
   done:{},            // lessonId -> stars
@@ -1198,7 +1202,9 @@ function levelTitle(xp){ return TITLES[levelOf(xp)-1]; }
 /* ============================================================
    本地存档 + Firebase Firestore 云同步
    以勇者名（用户名）为键：users/<用户名>
-   登录后先读云端并与本机合并；断网先存本机，有网自动补同步
+   同步先比对最后更新时间（云端用服务器时间判断是否被别的设备改过）：
+   整份更新的一方为准，云端更新就整份覆盖本机（覆盖前先备份本机那份）；
+   时间分不出先后时才逐项合并兜底。断网先存本机，有网自动补同步
    ============================================================ */
 var firebaseConfig = {
   apiKey: "AIzaSyDMzvJkkwGAsFZmKwkOQFegBn9tzIPsKBk",
@@ -1213,6 +1219,8 @@ var cloudLoaded = false; // 本次会话是否已成功读到过云端；没读�
 var syncDirty = false, syncTimer = null;
 var pushInFlight = false, pushQueued = false;
 var lastLocalMs = 0;
+var lastCloudMs = 0; // 上次成功读写时云端文档的服务器更新时间（毫秒）；0 = 本次会话还没和云端对过账
+var cloudAdoptNotified = false; // 本次会话是否已提示过「已按云端最新进度更新本机」，避免反复弹
 /* 本地存储可用性探测：预览、隐私模式等环境里 localStorage 可能不可用，
    这时用内存顶替本次会话，并完全依靠云端存档跨刷新恢复 */
 var storageOk = (function(){
@@ -1309,8 +1317,15 @@ function fromFsValue(v){
   if("arrayValue" in v) return ((v.arrayValue && v.arrayValue.values) || []).map(fromFsValue);
   return null;
 }
-/* 读云端：成功返回进度对象；云端还没有这份存档返回 null；失败/超时抛错 */
-function cloudGet(name, ms){
+/* Firestore 文档自带的 updateTime 是服务器盖的时间戳，不依赖手机/电脑自己的时钟，
+   用它判断「云端这份是不是被别的设备更新过」最可靠 */
+function fsTimeMs(iso){
+  if(!iso) return 0;
+  var t = Date.parse(iso);
+  return isNaN(t) ? 0 : t;
+}
+/* 读云端（带服务器时间）：成功返回 {data, cloudMs}；云端还没有这份存档返回 null；失败/超时抛错 */
+function cloudGetFull(name, ms){
   return fetchTimeout(fsDocUrl(name), { method: "GET" }, ms || 5000).then(function(r){
     if(r.status === 404) return null;
     if(!r.ok) throw new Error("http " + r.status);
@@ -1319,8 +1334,12 @@ function cloudGet(name, ms){
     if(!j) return null;
     var o = {}, f = j.fields || {};
     Object.keys(f).forEach(function(k){ o[k] = fromFsValue(f[k]); });
-    return o;
+    return { data: o, cloudMs: fsTimeMs(j.updateTime) };
   });
+}
+/* 读云端：成功返回进度对象；云端还没有这份存档返回 null；失败/超时抛错 */
+function cloudGet(name, ms){
+  return cloudGetFull(name, ms).then(function(res){ return res ? res.data : null; });
 }
 /* 写云端：带 updateMask 的 PATCH，只更新这次带上的字段，没带上的字段云端原样不动。
    关键修复：本机密码哈希为空时，pwdHash 干脆不带——以前整份覆盖写，
@@ -1340,6 +1359,11 @@ function cloudSet(data){
     body: JSON.stringify({ fields: fields })
   }, 5000).then(function(r){
     if(!r.ok) throw new Error("http " + r.status);
+    return r.json().catch(function(){ return null; });
+  }).then(function(j){
+    /* 记住这次写入后云端文档的服务器时间，下次同步先和它比对 */
+    var t = j && fsTimeMs(j.updateTime);
+    if(t) lastCloudMs = t;
     return true;
   });
 }
@@ -1378,7 +1402,59 @@ function loadLocal(name){
   if(!raw) return null;
   try{ return JSON.parse(raw); }catch(e){ return null; }
 }
-/* 合并规则：XP/金币取大值，已通关卡取并集（星级取高），
+var SYNC_SKEW_MS = 2000; // 两份存档更新时间相差在这个范围内，视为同一时刻（吸收各设备时钟误差）
+/* 同步裁决（v8）：先比「最后更新时间」，谁的整份更新就用谁的，不再逐项拼。
+   - changedOnCloud：云端文档的服务器时间比上次对账时更新 = 别的设备在我们背后改过云端
+   - 云端整份明显更新（且云端确实变过）→ "adopt"：整份采用云端，盖掉本机
+   - 本机整份明显更新 → "push"：把本机推上云端
+   - 时间太接近分不出先后 → "merge"：退回逐项合并兜底（同时防时钟不准误判） */
+function syncDecision(local, remote, cloudMs){
+  if(!remote) return "push";
+  if(!local) return "adopt";
+  var lt = (local && local.updatedAtMs) || 0;
+  var rt = (remote && remote.updatedAtMs) || 0;
+  var changedOnCloud = !!(cloudMs && cloudMs > lastCloudMs + SYNC_SKEW_MS);
+  if(changedOnCloud && rt > lt + SYNC_SKEW_MS) return "adopt";
+  if(lt > rt + SYNC_SKEW_MS) return "push";
+  return "merge";
+}
+function sameProgress(a, b){
+  if(!a || !b) return false;
+  return (a.xp || 0) === (b.xp || 0) && (a.coins || 0) === (b.coins || 0) &&
+    JSON.stringify(a.done || {}) === JSON.stringify(b.done || {}) &&
+    JSON.stringify(a.mistakes || []) === JSON.stringify(b.mistakes || []);
+}
+/* 本机进度被云端整份覆盖前，先把本机这份另存一份备份（「我的」页可一键恢复），
+   免得离线还没推上去的进度被悄悄丢掉 */
+function backupLocalCopy(name, data){
+  if(!name || !data) return;
+  try{ storeSet("xs_python_backup_" + name, JSON.stringify(data)); }catch(e){}
+}
+function loadBackup(name){
+  var raw = storeGet("xs_python_backup_" + name);
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
+/* 整份采用云端存档：本机先备份 → 云端数据原样落地（连它的更新时间一起保留，不重写成现在），
+   并且不再回推，避免把「最后更新时间」刷成现在 */
+function adoptRemote(remote, cloudMs){
+  var local = loadLocal(state.name);
+  if(local && !sameProgress(local, remote)) backupLocalCopy(state.name, local);
+  var keepHash = state.pwdHash;
+  applyData(remote);
+  if(remote.pwdHash) state.pwdHash = remote.pwdHash; else if(keepHash) state.pwdHash = keepHash;
+  if(cloudMs) lastCloudMs = cloudMs;
+  var data = snapshot();
+  data.updatedAtMs = remote.updatedAtMs || data.updatedAtMs || 0;
+  lastLocalMs = data.updatedAtMs;
+  storeSet(localKey(state.name), JSON.stringify(data));
+  storeSet("xs_python_last_user", state.name);
+  if(!cloudAdoptNotified && local && !sameProgress(local, remote)){
+    cloudAdoptNotified = true;
+    toast("已按云端最新进度更新本机（本机旧进度已备份，在「我的」页可恢复）");
+  }
+}
+/* 合并规则（仅作时间分不出先后时的兜底）：XP/金币取大值，已通关卡取并集（星级取高），
    正确率计数取 XP 更高的一方，错题本取更新时间较新的一方（避免练掉的错题复活） */
 function mergeData(local, remote){
   if(!local) return remote;
@@ -1416,36 +1492,45 @@ function pushCloud(){
     syncDirty = !ok;
     setSyncStatus(ok ? "synced" : "local");
   }
-  function doPush(extra){
-    var data = snapshot();
+  function doPush(data){
+    data = data || snapshot();
     data.updatedAtMs = Date.now();
-    if(extra){ /* 闯关途中不回滚界面状态，但要保住云端已有的更高进度 */
-      if(extra.done) Object.keys(extra.done).forEach(function(k){
-        data.done[k] = Math.max(data.done[k] || 0, extra.done[k] || 0);
-      });
-      data.xp = Math.max(data.xp, extra.xp || 0);
-      data.coins = Math.max(data.coins, extra.coins || 0);
-      if(!data.pwdHash && extra.pwdHash) data.pwdHash = extra.pwdHash;
-    }
     cloudSet(data).then(function(){ finishPush(true); }, function(){ finishPush(false); });
   }
-  if(cloudLoaded){ doPush(null); return; }
-  /* 本次会话还没成功读过云端：先读回来合并，再写，
-     绝不拿本机（可能是空的）进度直接覆盖云端 */
-  cloudGet().then(function(remote){
+  /* 每次推送前先重读一次云端并比对最后更新时间：
+     云端被别的设备更新、且整份更新 → 先整份采用云端（本机进度不推了，避免盖掉新进度）；
+     本机更新 → 正常推送；时间接近 → 兜底合并后再推。
+     还没读到过云端时（cloudLoaded=false）读失败绝不盲推，沿用 v7 的保护。 */
+  cloudGetFull().then(function(res){
     cloudLoaded = true;
-    if(remote && !session){
-      var local = loadLocal(state.name);
-      var cur = snapshot(); cur.updatedAtMs = local.updatedAtMs || 0;
-      if(local) local = mergeData(local, cur); else local = cur;
-      applyData(mergeData(local, remote));
-      saveLocal();
-      renderMain();
-      doPush(null);
-    } else {
-      doPush(remote);
+    var remote = res && res.data, cloudMs = (res && res.cloudMs) || 0;
+    if(!remote){ doPush(null); return; }
+    var local = loadLocal(state.name);
+    var cur = snapshot(); cur.updatedAtMs = (local && local.updatedAtMs) || lastLocalMs || 0;
+    var base = local ? mergeData(local, cur) : cur;
+    var dec = syncDecision(base, remote, cloudMs);
+    if(dec === "adopt"){
+      if(session){ /* 正在闯关：不打断这一关，也不拿旧快照盖云端；先推一份并集保住两边进度，
+                      等回到地图，下一次同步再按最后更新时间整份裁决 */
+        doPush(mergeData(base, remote));
+      } else {
+        adoptRemote(remote, cloudMs);
+        renderMain();
+        finishPush(true);
+      }
+      return;
     }
-  }, function(){ finishPush(false); });
+    if(dec === "merge"){
+      var merged = mergeData(base, remote);
+      if(!session){ applyData(merged); saveLocal(); renderMain(); }
+      doPush(merged); /* 写云端用合并结果（保住另一台设备的关卡），闯关中则不回滚界面 */
+      return;
+    }
+    doPush(null); /* 本机整份更新：直接推 */
+  }, function(){
+    if(cloudLoaded){ doPush(null); return; }
+    finishPush(false);
+  });
 }
 function scheduleSync(){
   saveLocal();
@@ -1458,7 +1543,9 @@ function flushSync(){
   if(syncTimer){ clearTimeout(syncTimer); syncTimer = null; }
   pushCloud();
 }
-/* 登录后：拉云端 → 与本机合并 → 回写云端。
+/* 登录后拉云端：先比最后更新时间再决定整份用谁（规则见 syncDecision）。
+   云端整份更新 → 整份采用云端并保留它的更新时间，不回推；
+   本机整份更新 → 把本机推上去；时间接近 → 兜底合并后回写。
    每次请求 5 秒硬超时：失败立刻显示本机进度 + 「本地保存中」，自动重试 2 次，
    失败时绝不把本机进度推上去覆盖云端。 */
 function pullAndMerge(done, attempt){
@@ -1467,13 +1554,30 @@ function pullAndMerge(done, attempt){
   function fin(){ if(!called){ called = true; if(done) done(); } }
   if(!navigator.onLine){ setSyncStatus("local"); fin(); return; }
   setSyncStatus("syncing");
-  cloudGet().then(function(remote){
+  cloudGetFull().then(function(res){
     cloudLoaded = true;
-    if(remote){
-      var local = loadLocal(state.name);
-      var cur = snapshot(); cur.updatedAtMs = lastLocalMs || Date.now();
-      if(local) local = mergeData(local, cur); else local = cur;
-      applyData(mergeData(local, remote));
+    var remote = res && res.data, cloudMs = (res && res.cloudMs) || 0;
+    if(!remote){
+      /* 云端还没有这份存档：把本机这份推上去建档 */
+      var nd = snapshot(); nd.updatedAtMs = Date.now();
+      cloudSet(nd).then(function(){
+        syncDirty = false; setSyncStatus("synced"); fin();
+      }, function(){
+        syncDirty = true; setSyncStatus("local"); fin();
+      });
+      return;
+    }
+    var local = loadLocal(state.name);
+    var cur = snapshot(); cur.updatedAtMs = lastLocalMs || (local && local.updatedAtMs) || 0;
+    var base = local ? mergeData(local, cur) : cur;
+    var dec = syncDecision(base, remote, cloudMs);
+    if(dec === "adopt"){
+      adoptRemote(remote, cloudMs);
+      syncDirty = false; setSyncStatus("synced"); fin();
+      return;
+    }
+    if(dec === "merge"){
+      applyData(mergeData(base, remote));
       saveLocal();
     }
     var data = snapshot();
@@ -1588,6 +1692,7 @@ function hashPwd(name, pwd){
 }
 function enterGame(name, welcomeBack){
   cloudLoaded = false;
+  lastCloudMs = 0; cloudAdoptNotified = false;
   var local = loadLocal(name);
   if(local){ var keepHash = state.pwdHash; applyData(local); if(keepHash) state.pwdHash = keepHash; }
   saveLocal();
@@ -1771,6 +1876,17 @@ function renderMe(){
     return (got||cur ? "✅ " : "🔒 ") + "Lv." + (i+1) + " " + t + (cur ? " ← 你在这里" : "");
   }).join("<br/>");
   $("meRoad").innerHTML = road + "<br/><span style='font-size:13px'>每 100 XP 升一级，通关和答对题目都能拿到 XP。</span>";
+  var brow = $("backupRow");
+  if(brow){
+    var bak = state.name ? loadBackup(state.name) : null;
+    if(bak){
+      brow.style.display = "";
+      var bi = $("backupInfo");
+      if(bi) bi.textContent = "备份里有 " + (bak.xp || 0) + " XP、已通关 " + Object.keys(bak.done || {}).length + " 关。";
+    } else {
+      brow.style.display = "none";
+    }
+  }
   var pt = $("pwdCardTitle"), ph = $("pwdCardHint");
   if(pt) pt.textContent = state.pwdHash ? "🔑 修改密码" : "🔑 设置密码（还没设置）";
   if(ph) ph.textContent = state.pwdHash
@@ -2631,6 +2747,7 @@ $("dlDeployBtn").addEventListener("click", function(){
     });
     var ub = clone.querySelector("#updBanner"); if(ub) ub.classList.remove("show");
     var npb2 = clone.querySelector("#noPwdBanner"); if(npb2) npb2.style.display = "none";
+    var brow2 = clone.querySelector("#backupRow"); if(brow2) brow2.style.display = "none";
     var ne = clone.querySelector("#nameErr"); if(ne) ne.textContent = "";
     var tm = clone.querySelector("#tab-map"); if(tm) tm.style.display = "";
     var tk = clone.querySelector("#tab-mistakes"); if(tk) tk.style.display = "none";
@@ -2661,12 +2778,26 @@ $("retrySyncBtn").addEventListener("click", function(){
   toast("正在从云端拉取进度…");
   pullAndMerge(function(){
     renderMain();
-    toast(cloudLoaded ? "已和云端对齐，进度是最新的" : "云端暂时连不上，先用本机进度，联网后会自动同步");
+    toast(cloudLoaded ? "已和云端比对过最后更新时间，进度是最新的" : "云端暂时连不上，先用本机进度，联网后会自动同步");
   });
+});
+$("restoreBackupBtn").addEventListener("click", function(){
+  if(!state.name) return;
+  var bak = loadBackup(state.name);
+  if(!bak){ toast("没有可恢复的备份"); renderMe(); return; }
+  var keepHash = state.pwdHash;
+  applyData(bak);
+  if(keepHash) state.pwdHash = keepHash;
+  /* 恢复后把更新时间标成现在，这份就成为最新的一份，推送后其他设备会以它为准 */
+  saveLocal();
+  renderMain();
+  flushSync();
+  toast("已恢复被覆盖前的本机进度，并同步到云端");
 });
 $("switchUserBtn").addEventListener("click", function(){
   session = null;
   cloudLoaded = false;
+  lastCloudMs = 0; cloudAdoptNotified = false;
   state = { name:"", xp:0, coins:0, done:{}, answered:0, firstTryRight:0, mistakes:[], pwdHash:"" };
   storeRemove("xs_python_last_user");
   $("nameInput").value = "";
@@ -2729,13 +2860,15 @@ document.addEventListener("visibilitychange", function(){
   var local = loadLocal(last);
   if(!local) return;
   state.name = last;
+  lastCloudMs = 0; cloudAdoptNotified = false;
   applyData(local);
   renderMain();
   showView("view-main");
   /* 本台设备记住账号可直接进入，但先核对云端密码：
      云端已设密码、而本机没存过对的密码（比如在别的设备改过密码），就退回登录页输密码 */
   var localHash = local.pwdHash || "";
-  cloudGet(last).then(function(remote){
+  cloudGetFull(last).then(function(res){
+    var remote = res && res.data, cloudMs = (res && res.cloudMs) || 0;
     if(remote && remote.pwdHash && remote.pwdHash !== localHash){
       session = null;
       cloudLoaded = false;
@@ -2749,13 +2882,24 @@ document.addEventListener("visibilitychange", function(){
     }
     cloudLoaded = true;
     if(remote){
+      /* 同样先比最后更新时间：云端整份更新就整份采用，本机更新就推本机，接近才合并 */
       var cur = snapshot(); cur.updatedAtMs = local.updatedAtMs || 0;
-      applyData(mergeData(cur, remote));
-      saveLocal();
+      var dec = syncDecision(cur, remote, cloudMs);
+      if(dec === "adopt"){
+        adoptRemote(remote, cloudMs);
+        setSyncStatus("synced");
+      } else if(dec === "merge"){
+        applyData(mergeData(cur, remote));
+        saveLocal();
+        flushSync();
+      } else {
+        flushSync();
+      }
+    } else {
+      flushSync();
     }
     renderMain();
     if(!state.pwdHash) toast("这个账号还没设密码，去「我的」页给它设一个更安全");
-    flushSync();
   }, function(){
     pullAndMerge(function(){ renderMain(); });
   });
