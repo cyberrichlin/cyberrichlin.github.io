@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="light dark" />
 <link rel="icon" href="data:," />
@@ -336,6 +339,16 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
   padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:all .25s;z-index:99;white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.update-banner{
+  position:fixed;left:50%;bottom:86px;transform:translateX(-50%);
+  background:var(--blue);color:#fff;font-weight:900;font-size:15px;
+  padding:10px 12px 10px 18px;border-radius:999px;display:none;align-items:center;gap:12px;
+  z-index:120;box-shadow:0 4px 0 var(--blue-dark);white-space:nowrap;
+}
+.update-banner.show{display:flex;}
+.update-banner button{background:#fff;color:var(--blue-dark);border:none;border-radius:999px;font-weight:900;font-size:14px;padding:8px 14px;cursor:pointer;min-height:36px;}
+.chapter-divider{width:100%;text-align:center;margin:16px 0 4px;position:relative;z-index:1;}
+.chapter-divider span{display:inline-block;background:var(--purple);color:#fff;font-weight:900;font-size:13.5px;border-radius:8px;padding:5px 12px;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -360,17 +373,21 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
       <div class="feature-chip">⭐ <span>经验升级</span></div>
     </div>
     <div class="name-card">
-      <label for="nameInput">输入你的勇者名，进度按这个名字存到云端</label>
-      <input class="name-input" id="nameInput" type="text" maxlength="12" placeholder="比如：小生" autocomplete="off" />
+      <label for="nameInput">勇者名 + 密码登录，进度按账号存到云端</label>
+      <input class="name-input" id="nameInput" type="text" maxlength="12" placeholder="勇者名，比如：小生" autocomplete="off" />
+      <div style="height:10px"></div>
+      <input class="name-input" id="pwdInput" type="password" maxlength="32" placeholder="密码（至少 4 位）" autocomplete="current-password" />
+      <div style="height:10px"></div>
+      <input class="name-input" id="pwd2Input" type="password" maxlength="32" placeholder="确认密码（只有第一次设置密码时要再填一遍）" autocomplete="new-password" />
       <div class="name-err" id="nameErr"></div>
       <button class="btn block" id="startBtn">开始冒险 →</button>
-      <div style="color:var(--ink-soft);font-weight:700;font-size:13.5px;line-height:1.65;margin-top:10px">以前玩过？输入<b>同一个</b>勇者名，云端进度会自动回来，刷新、换设备都不怕。同名就是同一个人，名字别告诉别人。</div>
+      <div style="color:var(--ink-soft);font-weight:700;font-size:13.5px;line-height:1.65;margin-top:10px">以前玩过？输入<b>同一个</b>勇者名 + 密码，云端进度会自动回来，刷新、换设备都不怕。<br/>老账号第一次登录时，你输入的密码就会被设为这个账号的密码，记好它；换设备登录必须输对密码，别人才进不来。</div>
     </div>
     <div class="roadmap">
       <h3>🗺️ 冒险路线（从简到繁）</h3>
       <ol>
-        <li><b>第一章 · 字母篇</b> <span class="now">← V1 先玩这一章，9 关</span></li>
-        <li><b>第二章 · 单词篇</b>：列表、字典等「单词家族」</li>
+        <li><b>第一章 · 字母篇</b>：print、变量、数字、文字（9 关）</li>
+        <li><b>第二章 · 单词篇</b>：列表、字典等「单词家族」 <span class="now">← 新增 10 关</span></li>
         <li><b>第三章 · 语法篇</b>：if 判断、for 循环</li>
         <li><b>第四章 · 句子篇</b>：函数，自己写完整小程序</li>
         <li><b>第五章 · 文章篇</b>：小项目实战，真跑代码</li>
@@ -391,7 +408,7 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
       </div>
       <div class="stat heart" title="本关爱心在关卡里计算">
         <svg viewBox="0 0 24 24" fill="#ff4b4b"><path d="M12 21s-7.5-4.9-9.8-9.2C.6 8.6 2.6 5 6.1 5c2 0 3.4 1.1 4.2 2.4h3.4C14.5 6.1 15.9 5 17.9 5c3.5 0 5.5 3.6 3.9 6.8C19.5 16.1 12 21 12 21z" transform="scale(0.92) translate(1,0)"/></svg>
-        <span id="statDone">0/9</span>
+        <span id="statDone">0/19</span>
       </div>
       <div class="stat level" id="statLevel">Lv.1 新手勇者</div>
       <div class="sync-pill" id="syncPill" title="云端同步状态">● 本地保存中</div>
@@ -401,23 +418,24 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
     <div class="main-scroll" id="mainScroll">
     <div id="tab-map">
       <div class="map-head">
-        <span class="chapter-tag">第一章 · 字母篇</span>
+        <span class="chapter-tag">第一章 字母篇 + 第二章 单词篇 · 共 19 关</span>
         <h2 id="mapGreeting">新手村</h2>
-        <p>学英语先背 26 个字母，学 Python 先认它的「字母」：<b>print、变量、数字、文字</b>。一关一关往上爬，打完 Boss 关就毕业！</p>
+        <p>第一章先认 Python 的「字母」：<b>print、变量、数字、文字</b>；第二章再背「单词家族」：<b>列表、字典</b>。一关一关往上爬，打完两个 Boss 就毕业！</p>
       </div>
       <div class="xp-progress">
         <div class="row"><span id="xpLabel">Lv.1 新手勇者</span><span id="xpNums">0 / 100 XP</span></div>
         <div class="bar"><i id="xpBar" style="width:0%"></i></div>
       </div>
       <div class="path" id="path"></div>
-      <div class="chapter-next">🔒 第二章「单词篇」：打完第一章 Boss 后解锁<br/>列表、字典、常用函数，一个个背下来</div>
+      <div class="chapter-next">🔒 第三章「语法篇」：打完第 19 关 Boss 后解锁<br/>if 判断、for 循环，把「单词」连成「句子」</div>
       <div style="height:18px"></div>
     </div>
 
     <div id="tab-mistakes" style="display:none">
       <div class="panel">
         <h2>📕 错题本</h2>
-        <p class="sub">答错的题会自动收进这里，这里就是你的训练场。点「再练一次」把错题练对，它就会从错题本里消失。</p>
+        <p class="sub">答错的题会自动收进这里，这里就是你的训练场。点「再练一次」把错题练对，它就会从错题本里消失。错题本会跟 XP、通关进度一起同步到云端，换设备也是同一本。</p>
+        <div class="sync-note-live" style="font-weight:800;font-size:13.5px;color:var(--ink-soft);margin:-6px 0 14px">☁️ 正在确认同步状态…</div>
         <div id="mistakeList"></div>
       </div>
     </div>
@@ -440,7 +458,7 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
         <div class="me-grid">
           <div class="me-stat"><div class="n" id="meXp">0</div><div class="l">总经验 XP</div></div>
           <div class="me-stat"><div class="n" id="meCoin">0</div><div class="l">金币</div></div>
-          <div class="me-stat"><div class="n" id="meDone">0 / 9</div><div class="l">已通关</div></div>
+          <div class="me-stat"><div class="n" id="meDone">0 / 19</div><div class="l">已通关</div></div>
           <div class="me-stat"><div class="n" id="meAcc">—</div><div class="l">总正确率</div></div>
         </div>
         <div style="height:14px"></div>
@@ -452,7 +470,23 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
           <div style="font-weight:900;margin-bottom:6px">☁️ 云端同步</div>
           <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8" id="meSync">正在连接云端…</div>
           <div style="height:10px"></div>
-          <button class="btn ghost small" id="switchUserBtn">切换勇者名</button>
+          <button class="btn blue small" id="retrySyncBtn">🔄 重新从云端拉取进度</button>
+          <span style="display:inline-block;width:8px"></span>
+          <button class="btn ghost small" id="switchUserBtn">退出登录 / 切换账号</button>
+        </div>
+        <div class="me-card">
+          <div style="font-weight:900;margin-bottom:6px">🔑 修改密码</div>
+          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8">换设备登录时要输这个密码。改完后，其他设备要用新密码登录。</div>
+          <div style="height:10px"></div>
+          <input class="name-input" id="newPwdInput" type="password" maxlength="32" placeholder="新密码（至少 4 位）" autocomplete="new-password" />
+          <div style="height:10px"></div>
+          <button class="btn blue small" id="chgPwdBtn">保存新密码</button>
+        </div>
+        <div class="me-card">
+          <div style="font-weight:900;margin-bottom:6px">🔄 版本更新</div>
+          <div style="color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1.8">当前版本：<b id="appVer">—</b><br/>新版本部署到 GitHub 后，这个页面每次打开、每次刷新都会自动检查：发现新版会弹出更新条，点一下就换成最新版；进度同时自动从云端同步回来，不用手动操作。</div>
+          <div style="height:10px"></div>
+          <button class="btn blue small" id="updBtn">检查更新</button>
         </div>
         <div class="me-card">
           <div style="font-weight:900;margin-bottom:6px">📦 更新 GitHub 上的版本</div>
@@ -505,12 +539,11 @@ code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;}
 </div>
 <canvas id="fxCanvas" aria-hidden="true"></canvas>
 <div class="toast" id="toast"></div>
+<div class="update-banner" id="updBanner"><span>发现新版本啦 🎉</span><button id="updReload">点我更新</button></div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
 /* ============================================================
-   小生Python V1 · 第一章 字母篇（9 关）
+   小生Python · 第一章 字母篇（9 关）+ 第二章 单词篇（10 关），共 19 关
    难度曲线：看懂 → 选择 → 填空 → 拼句子 → 自己写
    ============================================================ */
 var LESSONS = [
@@ -810,16 +843,348 @@ var LESSONS = [
       explain:{wrong:"检查：是先赋值再运算吗？print 里写的是 price * num 吗？", why:"变量运算是编程的核心招式：把数据装进变量，再让电脑替你算。", fix:"price = 9\nnum = 4\nprint(price * num)"},
       hints:["三行：两个赋值，一行 print 运算。","print 里是 price * num，中间是星号。"] }
   ]
+},
+{
+  id:10, icon:"list", title:"一排小格子", sub:"列表：把东西排成一队",
+  teach:{
+    tag:"第二章 · 第一个「单词家族」：列表",
+    html:"第一章你学的都是单个的「字母」。现在学第一个<b>单词家族</b>：<b>列表</b>（英文 list）。<br/><br/>列表就是一排小格子，可以把很多东西<b>按顺序</b>装进一个变量里。写法是用<b>方括号 [ ]</b> 把东西包起来，每样东西之间用<b>逗号</b>隔开。",
+    code:'fruits = ["苹果", "香蕉", "橙子"]\nprint(fruits)\nprint(fruits[0])',
+    out:"['苹果', '香蕉', '橙子']\n苹果",
+    analogy:"🚃 就像一列火车：fruits 是整列火车，每个格子是一节车厢，按顺序排好。想拿第几节车厢里的东西，用「编号」去取（下一关细讲）。",
+    tip:"方括号里每样东西之间都要有逗号，文字要穿引号、数字不用。最后一个东西后面可以不加逗号。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"下面哪一行是正确的列表写法？",
+      options:['nums = [1, 2, 3]','nums = (1, 2, 3)','nums = [1 2 3]','nums = "1, 2, 3"'], answer:0,
+      explain:{wrong:"列表要用方括号，东西之间要有逗号。", why:"( ) 是以后学的元组；没有逗号电脑分不清谁是谁；穿了引号就只是一段文字了。", fix:"列表标准写法：名字 = [东西1, 东西2, 东西3]"},
+      hints:["列表穿的是方括号这件衣服。","每样东西之间要隔开。"] },
+    { type:"choice", tag:"想一想", q:"fruits = [\"苹果\", \"香蕉\"]，这个列表里装了几样东西？",
+      options:["2 样","1 样","3 样","数不清"], answer:0,
+      explain:{wrong:"数一数引号包住的东西有几个。", why:"列表里有「苹果」和「香蕉」两样东西，逗号是分隔线，不算东西。", fix:"数列表里有几样东西，就数逗号分开的段数。"},
+      hints:["逗号只是分隔线。","一个引号包住的算一样。"] },
+    { type:"fill", tag:"填一填", q:"补全代码，补上列表里缺的数字（1、2、后面应该是几？）",
+      before:"nums = [1, 2, _____]", answer:"3", note:"填一个数字，不用引号",
+      explain:{wrong:"数字不用穿引号。", why:"列表里可以装数字，数字直接写，不用引号。", fix:"把空填成 3"},
+      hints:["1、2、接下来是几？","直接写数字。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：把 1、2、3 装进列表 nums",
+      chips:['[1, 2, 3]','nums','='], answer:['nums','=','[1, 2, 3]'],
+      explain:{wrong:"语序不对。", why:"还是赋值的老规矩：名字在左、等号在中、东西（整个列表）在右。", fix:"顺序：nums → = → [1, 2, 3]"},
+      hints:["整个列表算「一样东西」，放等号右边。","标签永远在最左边。"] },
+    { type:"code", tag:"自己写", q:"把「语文」和「数学」装进列表 subjects，再用 print 显示 subjects 的第一个东西（目标输出：语文）",
+      starter:"", expected:["语文"],
+      explain:{wrong:"检查：列表是不是方括号？取第一个是不是 subjects[0]？", why:"取列表里的东西用 变量[编号]，编号从 0 开始数，第一个的编号是 0（下一关细讲）。", fix:"subjects = [\"语文\", \"数学\"]\nprint(subjects[0])"},
+      hints:["第一行先装列表，文字要穿引号。","第二行：print(subjects[0])"] }
+  ]
+},
+{
+  id:11, icon:"idx", title:"按编号取东西", sub:"下标：从 0 开始数",
+  teach:{
+    tag:"列表的门牌号：下标",
+    html:"列表里每个格子都有一个<b>编号</b>，叫<b>下标</b>。最重要的规矩：<b>编号从 0 开始数</b>！第一个是 0，第二个是 1，第三个是 2。<br/><br/>还有个偷懒办法：编号 <b>-1</b> 表示<b>最后一个</b>，-2 是倒数第二个。<br/><br/>格子里的东西还能<b>换</b>：给某个编号重新赋值就行。",
+    code:'fruits = ["苹果", "香蕉", "橙子"]\nprint(fruits[-1])\nfruits[0] = "葡萄"\nprint(fruits)',
+    out:"橙子\n['葡萄', '香蕉', '橙子']",
+    analogy:"🏠 就像一排房子从 0 号开始编号：0 号房是第一家。-1 就是「最后一家的快捷叫法」，不用数一共有几家。",
+    tip:"新手最容易栽的坑：想拿第一个却写了 [1]。记住口诀：编号从 0 开始，第一个是 0。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"colors = [\"红\", \"黄\", \"蓝\"]，colors[1] 是什么？",
+      options:["黄","红","蓝","报错"], answer:0,
+      explain:{wrong:"编号从 0 开始数。", why:"编号 0 是「红」，编号 1 是「黄」，编号 2 是「蓝」。所以 colors[1] 是第二个：黄。", fix:"数格子时从 0 开始：0、1、2……"},
+      hints:["第一个格子的编号是 0，不是 1。","把三个颜色按 0、1、2 标好再看。"] },
+    { type:"choice", tag:"想一想", q:"想取列表最后一个东西，最稳的写法是？",
+      options:["fruits[-1]","fruits[0]","fruits[最后]","fruits[last]"], answer:0,
+      explain:{wrong:"取最后一个有专门的快捷编号。", why:"-1 永远代表最后一个，不管列表有多长都管用。写中文或英文单词进去都不对。", fix:"最后一个 = 编号 -1"},
+      hints:["负数编号是从尾巴往回数。","倒数第一是 -1。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：显示列表的第一个东西",
+      before:"print(fruits[_____])", answer:"0", note:"填第一个格子的编号",
+      explain:{wrong:"第一个格子的编号不是 1。", why:"编号从 0 开始，第一个格子的编号就是 0。", fix:"把空填成 0"},
+      hints:["从几开始数？","最小的那个编号。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：把 fruits 第一个格子换成「梨」",
+      chips:['=','fruits[0]','"梨"'], answer:['fruits[0]','=','"梨"'],
+      explain:{wrong:"顺序不对。", why:"换格子里的东西，本质还是赋值：左边写「哪个格子」，右边写新东西。", fix:"顺序：fruits[0] → = → \"梨\""},
+      hints:["左边是格子地址，不是变量名本身。","新东西要穿引号。"] },
+    { type:"code", tag:"自己写", q:"把 80、90、100 装进列表 scores，用 print 显示最后一个分数（目标输出：100）",
+      starter:"", expected:["100"],
+      explain:{wrong:"检查：可以用 scores[-1]，也可以用 scores[2]，两种都对。", why:"列表有 3 个数：编号是 0、1、2，最后一个是编号 2，也可以用 -1 直接取。", fix:"scores = [80, 90, 100]\nprint(scores[-1])"},
+      hints:["第一行装三个数字，不用引号。","第二行取最后一个：-1 最省事。"] }
+  ]
+},
+{
+  id:12, icon:"len", title:"数一数，有几个", sub:"len 计数 + append 追加",
+  teach:{
+    tag:"两个新工具：len 和 append",
+    html:"列表有两个天天要用的工具：<br/><br/><b>len(列表)</b>：数一数列表里有几样东西（len 是 length「长度」的缩写）。<br/><b>列表.append(东西)</b>：把新东西<b>追加</b>到列表的<b>最后面</b>（append 读作「额潘德」，意思是「加上」）。",
+    code:'fruits = ["苹果", "香蕉"]\nprint(len(fruits))\nfruits.append("橙子")\nprint(len(fruits))\nprint(fruits)',
+    out:"2\n3\n['苹果', '香蕉', '橙子']",
+    analogy:"🎫 就像排队买票：len 是数一数队伍里有几个人；append 是又来了一个人，排到队尾。",
+    tip:"append 前面有个小圆点，它是「列表专属工具」的标志，写成 列表.append(东西)，别漏了括号里的东西。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"len([\"猫\", \"狗\", \"鸟\", \"鱼\"]) 的结果是？",
+      options:["4","3","5","报错"], answer:0,
+      explain:{wrong:"数一数列表里有几样东西。", why:"猫、狗、鸟、鱼一共 4 样，len 就是数个数，结果是 4。", fix:"len(列表) = 列表里东西的个数。"},
+      hints:["一样一样数。","逗号分开了几段？"] },
+    { type:"choice", tag:"想一想", q:"fruits.append(\"西瓜\") 这行代码做了什么？",
+      options:["把「西瓜」加到列表最后面","把列表清空再放西瓜","把西瓜插到最前面","数一数有几个西瓜"], answer:0,
+      explain:{wrong:"append 是排队尾的工具。", why:"append 把新东西追加到列表末尾，原来的东西都还在，顺序不变。", fix:"append = 排到队尾，不插队、不清场。"},
+      hints:["想想排队买票的比喻。","新来的人站哪儿？"] },
+    { type:"fill", tag:"填一填", q:"补全代码：数一数 fruits 里有几样东西并显示",
+      before:"print(_____(fruits))", answer:"len", note:"填数个数用的单词",
+      explain:{wrong:"数个数的工具还没写对。", why:"len(列表) 返回列表的长度，也就是东西的个数。", fix:"把空填成 len"},
+      hints:["length 的前三个字母。","l 开头，一共 3 个字母。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：把「西瓜」追加进 fruits 列表",
+      chips:['fruits','.append','("西瓜")'], answer:['fruits','.append','("西瓜")'],
+      explain:{wrong:"顺序不对。", why:"用列表的专属工具，句式是：列表 . 工具名 (东西)，小圆点把它们连起来。", fix:"顺序：fruits → .append → (\"西瓜\")"},
+      hints:["先写列表名。","小圆点后面跟工具名。"] },
+    { type:"code", tag:"自己写", q:"把「红色」和「黄色」装进列表 colors，再用 append 加一个「蓝色」，最后用 print 显示列表里一共有几种颜色（目标输出：3）",
+      starter:"", expected:["3"],
+      explain:{wrong:"三行逐个查：装列表、append 追加、len 计数显示。", why:"先装 2 个，append 再加 1 个，一共 3 个，用 len 数出来显示。", fix:"colors = [\"红色\", \"黄色\"]\ncolors.append(\"蓝色\")\nprint(len(colors))"},
+      hints:["一共三行，append 单独占一行。","最后一行是 print(len(colors))。"] }
+  ]
+},
+{
+  id:13, icon:"dict", title:"通讯录的秘密", sub:"字典：按名字查东西",
+  teach:{
+    tag:"第二个「单词家族」：字典",
+    html:"列表是按<b>编号</b>找东西，但很多时候我们想按<b>名字</b>找，比如通讯录里按人名查电话。这就是<b>字典</b>（英文 dict）。<br/><br/>字典用<b>大括号 { }</b>，里面装的是一对一对的<b>「键 : 值」</b>：键是名字，值是内容。查找时用 <b>字典[\"键\"]</b>。",
+    code:'person = {"名字": "小生", "年龄": 18}\nprint(person["名字"])\nprint(person["年龄"])',
+    out:"小生\n18",
+    analogy:"📖 就像查真正的字典：你翻到「苹」这个字（键），就能看到它的解释（值）。键就是你要查的词条。",
+    tip:"键一般是文字，要穿引号；键和值之间用冒号 : 连接；每对之间用逗号隔开。查的时候键也要穿引号写在方括号里。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"字典 person = {\"名字\": \"小生\"} 里，「键」是哪一个？",
+      options:["名字","小生","person","等号"], answer:0,
+      explain:{wrong:"冒号左边的是键，右边的是值。", why:"「名字」是要查的词条（键），「小生」是查到的内容（值），person 是整个字典的名字。", fix:"记住结构：{键: 值}，左边查、右边存。"},
+      hints:["冒号把一对东西分成两半。","你要拿什么去查？"] },
+    { type:"choice", tag:"想一想", q:"person = {\"年龄\": 18}，想显示年龄，哪行是对的？",
+      options:['print(person["年龄"])','print(person[0])','print(person.年龄)','print(person(年龄))'], answer:0,
+      explain:{wrong:"字典不按编号查，按键名查。", why:"字典里没有 0 号格子，要把键名穿上引号放进方括号：person[\"年龄\"]。", fix:"字典查找：字典[\"键名\"]，键名带引号。"},
+      hints:["字典和列表最大的区别就是查法。","键名要穿引号，放在方括号里。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：查出 person 里的年龄（键是「年龄」）",
+      before:'print(person[_____])', answer:'"年龄"', note:"填带引号的键名",
+      explain:{wrong:"键名要穿引号。", why:"方括号里要写键名本身，而且键是文字，必须穿英文引号：person[\"年龄\"]。", fix:"把空填成 \"年龄\"（带英文引号）"},
+      hints:["填的是键名，不是数字 18。","别忘了引号。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：把 person 里的「城市」查出来装进变量 city",
+      chips:['city','=','person','["城市"]'], answer:['city','=','person','["城市"]'],
+      explain:{wrong:"顺序不对。", why:"先写接住结果的变量，再写字典和它的查找：变量 = 字典[\"键\"]。", fix:"顺序：city → = → person → [\"城市\"]"},
+      hints:["赋值老规矩：结果装进左边的变量。","查找动作在等号右边完成。"] },
+    { type:"code", tag:"自己写", q:"建一个字典 book：键「书名」的值是「西游记」，键「页数」的值是 800；再用 print 显示书名（目标输出：西游记）",
+      starter:"", expected:["西游记"],
+      explain:{wrong:"检查：大括号、冒号、逗号齐不齐？查书名时键穿引号了吗？", why:"字典里文字值穿引号，数字值不穿；查找用 book[\"书名\"]。", fix:"book = {\"书名\": \"西游记\", \"页数\": 800}\nprint(book[\"书名\"])"},
+      hints:["第一行建字典：{\"书名\": \"西游记\", \"页数\": 800}","第二行用方括号 + 键名查。"] }
+  ]
+},
+{
+  id:14, icon:"dict2", title:"字典也能改", sub:"添加新键 + 修改值",
+  teach:{
+    tag:"字典的增和改",
+    html:"字典不是建好就不能动：<br/><br/>想<b>加一对新的</b>：直接写 <b>字典[\"新键\"] = 值</b>，这个键原来没有，就会自动加进去。<br/>想<b>改原来的值</b>：同样写 <b>字典[\"旧键\"] = 新值</b>，键已经有了，就会把值换掉。<br/><br/>一句话：<b>有则改，无则加</b>。",
+    code:'person = {"名字": "小生"}\nperson["城市"] = "深圳"\nperson["名字"] = "阿生"\nprint(person["城市"])\nprint(person["名字"])',
+    out:"深圳\n阿生",
+    analogy:"📒 就像在通讯录里记号码：这个人还没有，就新添一行；已经有了，就把旧号码划掉写新的。",
+    tip:"给字典赋值用的是方括号 + 键名，不是小圆点。写错键名（比如多一个字）会新建一个键，老键还在，别写错字。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"person 里本来没有「职业」，运行 person[\"职业\"] = \"学生\" 后会怎样？",
+      options:["自动新增一对「职业: 学生」","报错，键不存在","把所有键都替换掉","什么都不发生"], answer:0,
+      explain:{wrong:"字典赋值是「有则改，无则加」。", why:"键不存在时赋值，就是新增一对；键已存在时赋值，就是改值。两种情况都不会报错。", fix:"记住六个字：有则改，无则加。"},
+      hints:["回顾老师划的重点口诀。","通讯录里添新人的比喻。"] },
+    { type:"choice", tag:"想一想", q:"想把 person 里「年龄」从 18 改成 19，哪行是对的？",
+      options:['person["年龄"] = 19','person.年龄 = 19','person["年龄"] + 19','person = 19'], answer:0,
+      explain:{wrong:"改字典的值，要定位到那个键再赋值。", why:"person[\"年龄\"] = 19 的意思是：找到「年龄」这个键，把它的值换成 19。其他写法要么语法不对，要么把整个字典都毁了。", fix:"改值句式：字典[\"键\"] = 新值"},
+      hints:["先「找到键」，再「赋值」。","和添加新键是同一个句式。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：给 person 新增一对，键是「城市」，值是「广州」",
+      before:'person[_____] = "广州"', answer:'"城市"', note:"填带引号的键名",
+      explain:{wrong:"方括号里要写键名。", why:"新增一对时，方括号里放新键的名字（穿引号），等号右边放值。", fix:"把空填成 \"城市\"（带英文引号）"},
+      hints:["键是文字，要穿引号。","值已经写在等号右边了。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：把 book 里的「页数」改成 900",
+      chips:['book["页数"]','=','900'], answer:['book["页数"]','=','900'],
+      explain:{wrong:"顺序不对。", why:"左边是「要改的那个键」，右边是新值，中间一个等号。", fix:"顺序：book[\"页数\"] → = → 900"},
+      hints:["左边要精确到键。","数字不用引号。"] },
+    { type:"code", tag:"自己写", q:"先建字典 person，里面只有一对：「名字」是「小生」；再给它新增一对：「城市」是「深圳」；最后用 print 显示城市（目标输出：深圳）",
+      starter:"", expected:["深圳"],
+      explain:{wrong:"三行逐个查：建字典、新增键、显示。新增时键要穿引号放进方括号。", why:"person[\"城市\"] = \"深圳\" 会自动新增这一对，然后 person[\"城市\"] 就能查到它。", fix:"person = {\"名字\": \"小生\"}\nperson[\"城市\"] = \"深圳\"\nprint(person[\"城市\"])"},
+      hints:["第二行是新增的关键：person[\"城市\"] = \"深圳\"","第三行和新增时长得几乎一样，只是前面多了 print。"] }
+  ]
+},
+{
+  id:15, icon:"slice", title:"文字切一切", sub:"切片 + 大小写方法",
+  teach:{
+    tag:"字符串的两个新招",
+    html:"文字（字符串）也能像列表一样按编号取字，还能<b>切一片</b>下来：<b>文字[开始:结束]</b>，取的是从开始编号到结束编号<b>之前</b>的那一段（包头不包尾）。<br/><br/>文字还有专属工具：<b>.upper()</b> 把字母全变成大写，<b>.lower()</b> 全变成小写。",
+    code:'word = "python"\nprint(word[0])\nprint(word[0:2])\nprint(word.upper())',
+    out:"p\npy\nPYTHON",
+    analogy:"🍰 就像切蛋糕：[0:2] 是从第 0 刀切到第 2 刀，拿到的是刀口之间的那块——也就是前 2 个字母。",
+    tip:"切片口诀「包头不包尾」：[0:2] 拿到的是编号 0、1 两个字，编号 2 本身不在里面。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"\"hello\"[0:2] 的结果是什么？",
+      options:["he","hel","hello","lo"], answer:0,
+      explain:{wrong:"切片是包头不包尾。", why:"[0:2] 取编号 0 和 1 两个字母，就是 h 和 e，结果是 he。", fix:"数切片长度：结束 - 开始 = 拿到几个字。"},
+      hints:["结束编号本身不算在内。","一共拿 2 个字母。"] },
+    { type:"choice", tag:"想一想", q:"想把 \"abc\" 变成 \"ABC」，用哪个工具？",
+      options:[".upper()",".lower()","len()",".append()"], answer:0,
+      explain:{wrong:"注意大小写的方向。", why:".upper() 是变大写，.lower() 是变小写；len 是数个数；append 是列表的工具，文字没有。", fix:"大写 upper，小写 lower，看英文单词本身的意思。"},
+      hints:["up 是「向上」，对应大写更有气势。","append 是上一章列表的工具，别串门。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：显示 word 的最后一个字母（word = \"python\"）",
+      before:"print(word[_____])", answer:"-1", note:"填最后一个的快捷编号",
+      explain:{wrong:"最后一个的快捷编号是负数。", why:"和列表一样，文字的最后一个字编号也是 -1。", fix:"把空填成 -1"},
+      hints:["列表学过的偷懒办法，文字也能用。","倒数第一。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：显示 word 的前 3 个字母",
+      chips:['print','(word[0:3])'], answer:['print','(word[0:3])'],
+      explain:{wrong:"顺序不对。", why:"print 包住切片表达式：word[0:3] 表示从 0 切到 3 之前，正好前 3 个。", fix:"顺序：print → (word[0:3])"},
+      hints:["先写 print。","切片写在括号里面。"] },
+    { type:"code", tag:"自己写", q:"把「hello」装进变量 word，用 print 显示它的大写版（目标输出：HELLO）",
+      starter:"", expected:["HELLO"],
+      explain:{wrong:"检查：.upper() 前面的小圆点和后面的空括号都别漏。", why:"word.upper() 会生成一个全大写的新文字，print 把它显示出来。", fix:"word = \"hello\"\nprint(word.upper())"},
+      hints:["两行：先装变量，再 print。","工具要跟在变量后面，中间一个小圆点。"] }
+  ]
+},
+{
+  id:16, icon:"bool", title:"是真是假", sub:"布尔值与比较运算",
+  teach:{
+    tag:"新类型：布尔值",
+    html:"问电脑一个「是非题」，它回答的只有两个词：<b>True</b>（真的、对的）和 <b>False</b>（假的、错的）。这种只有真假两种值的类型叫<b>布尔值</b>。<br/><br/>是非题用<b>比较符号</b>来问：<b>==</b> 相等吗、<b>!=</b> 不相等吗、<b>&gt;</b> 大于、<b>&lt;</b> 小于、<b>&gt;=</b> 大于等于、<b>&lt;=</b> 小于等于。",
+    code:"age = 18\nprint(age >= 18)\nprint(age < 10)\nprint(3 == 3)",
+    out:"True\nFalse\nTrue",
+    analogy:"⚖️ 就像法官断案：你把两边摆出来（18 和 18），法官只回答一个词：True 或 False，没有第三种答案。",
+    tip:"最大的坑：「相等」是两个等号 ==，一个等号 = 是赋值！age = 18 是装东西，age == 18 才是问问题。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"print(5 > 8) 会显示什么？",
+      options:["False","True","5","报错"], answer:0,
+      explain:{wrong:"5 比 8 大吗？", why:"5 > 8 这个说法是假的，所以结果是 False。比较运算的结果永远是 True 或 False。", fix:"看到比较题，先自己判断真假，再选 True / False。"},
+      hints:["先回答：5 比 8 大吗？","答案只有真假两个词。"] },
+    { type:"choice", tag:"想一想", q:"下面哪行是在「问」a 和 5 相不相等？",
+      options:["print(a == 5)","a = 5","print(a = 5)","a == = 5"], answer:0,
+      explain:{wrong:"一个等号和两个等号，意思完全不同。", why:"= 是赋值（装东西），== 才是比较（问相等）。问句要放在 print 里显示答案。", fix:"口诀：一个等号是装，两个等号是问。"},
+      hints:["回顾老师划的最大坑。","问问题要用几个等号？"] },
+    { type:"fill", tag:"填一填", q:"补全代码：问一问 10 是不是大于 3（结果应该是 True）",
+      before:"print(10 _____ 3)", answer:">", note:"填大于符号",
+      explain:{wrong:"大于符号写错了。", why:"大于号 > 开口朝着大的那边：10 > 3 读作「10 大于 3」，是真的。", fix:"把空填成 >"},
+      hints:["开口对着 10，尖头对着 3。","和小于号正好相反。"] },
+    { type:"build", tag:"拼句子", q:"拼出代码：问 age 是不是大于等于 18，并显示答案",
+      chips:['print','(age >= 18)'], answer:['print','(age >= 18)'],
+      explain:{wrong:"顺序不对。", why:"print 包住整个比较式：age >= 18 是一个完整的是非题。", fix:"顺序：print → (age >= 18)"},
+      hints:["先写 print。",">= 是连在一起的两部分。"] },
+    { type:"code", tag:"自己写", q:"把 95 装进变量 score，用 print 问一问：score 是不是大于等于 60（及格线）？目标输出：True",
+      starter:"", expected:["True"],
+      explain:{wrong:"检查：第二行 print 里写的是 score >= 60 吗？别写成一个等号。", why:"95 >= 60 是真的，所以显示 True。这就是程序判断「及格没及格」的底层原理。", fix:"score = 95\nprint(score >= 60)"},
+      hints:["两行：先赋值，再提问。","大于等于是 >=，两个符号连着写。"] }
+  ]
+},
+{
+  id:17, icon:"if", title:"如果……就……", sub:"if 判断语句入门",
+  teach:{
+    tag:"让程序自己拿主意：if",
+    html:"有了真假判断，程序就能<b>自己拿主意</b>了，用的是 <b>if</b>（意思是「如果」）：<br/><br/><b>if 条件:</b> —— 如果条件是 True，就执行下面<b>缩进</b>的代码；是 False，就跳过它们。<br/><br/>两个规矩：条件后面有个<b>冒号 :</b>；被管的代码要往右<b>缩进 4 个空格</b>。",
+    code:'age = 18\nif age >= 18:\n    print("成年了，可以考驾照")\nprint("判断结束")',
+    out:"成年了，可以考驾照\n判断结束",
+    analogy:"🚪 就像一道门禁：if 是保安，条件是刷卡。卡对了（True）门里的事照常进行；卡不对（False）直接跳过，当无事发生。",
+    tip:"缩进不是装饰，是语法！该缩进没缩进会报错；冒号也别漏。看代码时，缩进的部分就是「被 if 管着的」。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"x = 3，运行 if x > 5: print(\"大\")（print 缩进在 if 下面），会显示什么？",
+      options:["什么都不显示","大","报错","显示 False"], answer:0,
+      explain:{wrong:"先判断条件是真是假。", why:"3 > 5 是 False，if 直接跳过它管着的那行 print，所以什么都不显示，也不会报错。", fix:"if 的流程：先算条件，False 就整段跳过。"},
+      hints:["3 比 5 大吗？","条件假的时候，缩进的代码会执行吗？"] },
+    { type:"choice", tag:"想一想", q:"if 语句里，哪样东西是绝对不能少的？",
+      options:["条件后面的冒号和下面代码的缩进","每行都加引号","变量名必须叫 if","print 必须写在 if 前面"], answer:0,
+      explain:{wrong:"想想老师划的两个规矩。", why:"冒号是 if 句子的结束标记，缩进决定哪些代码被 if 管着，少一个都会出问题。", fix:"if 两件套：冒号 + 缩进，缺一不可。"},
+      hints:["一共两个规矩。","一个在行尾，一个在行首。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：如果 score 大于等于 60，就显示「及格」（下一行已缩进写好）",
+      before:'_____ score >= 60:\n    print("及格")', answer:"if", note:"填「如果」对应的单词",
+      explain:{wrong:"判断语句的开头单词还没写对。", why:"if 条件: 是固定句式，if 后面跟一个比较条件，再跟冒号。", fix:"把空填成 if"},
+      hints:["英文的「如果」。","只有 2 个字母。"] },
+    { type:"build", tag:"拼句子", q:"拼出完整的 if 第一行：如果 age 小于 18",
+      chips:['if','age < 18',':'], answer:['if','age < 18',':'],
+      explain:{wrong:"顺序不对。", why:"if 句式是固定三段：if → 条件 → 冒号。冒号在最后，像句号一样收尾。", fix:"顺序：if → age < 18 → :"},
+      hints:["冒号永远在行尾。","条件夹在中间。"] },
+    { type:"code", tag:"自己写", q:"把 8 装进变量 num，写一个 if：如果 num 大于 5，就 print 显示「大于5」（记得冒号和缩进）。目标输出：大于5",
+      starter:"", expected:["大于5"],
+      explain:{wrong:"检查三点：if 后面是 num > 5 吗？冒号写了吗？print 那行往右缩进了 4 个空格吗？", why:"8 > 5 是 True，缩进的那行会被执行，显示「大于5」。", fix:"num = 8\nif num > 5:\n    print(\"大于5\")"},
+      hints:["一共三行，第三行开头空 4 格。","第二行行尾别忘了冒号。"] }
+  ]
+},
+{
+  id:18, icon:"tuple", title:"双胞胎兄弟", sub:"元组与集合：认个脸熟",
+  teach:{
+    tag:"列表的两个亲戚",
+    html:"列表有两个亲戚，先认个脸熟：<br/><br/><b>元组</b>（tuple）：长得像列表，但用<b>小括号 ( )</b>，而且建好之后<b>不能改</b>，适合装「出生日期」这种不该变的东西。取东西一样用 [编号]。<br/><b>集合</b>（set）：用<b>大括号 { }</b> 但没有键值对，它最大的本事是<b>自动去重</b>：重复的东西只留一个。",
+    code:'point = (3, 6, 9)\nprint(point[1])\nprint(len({1, 1, 2}))',
+    out:"6\n2",
+    analogy:"👨‍👦 元组像列表的双胞胎哥哥：长得像，但性格更「专一」，定了就不改。集合像门口的保安：同一个人（重复值）只放进去一次。",
+    tip:"分清三兄弟：列表 [ ] 能改能加；元组 ( ) 不能改；字典 {键:值} 按名字查；集合 { } 自动去重。"
+  },
+  exercises:[
+    { type:"choice", tag:"看一看", q:"下面哪一个是元组？",
+      options:["t = (1, 2, 3)","t = [1, 2, 3]","t = {1, 2, 3}","t = \"1, 2, 3\""], answer:0,
+      explain:{wrong:"元组穿的是小括号。", why:"[ ] 是列表，{ } 是集合（或字典），引号里的是文字。只有 ( ) 是元组。", fix:"认衣服：元组小括号、列表方括号。"},
+      hints:["看括号的形状。","圆圆的那个。"] },
+    { type:"choice", tag:"想一想", q:"集合 {2, 2, 5, 5, 5} 里最后留着几个数？",
+      options:["2 个","5 个","3 个","1 个"], answer:0,
+      explain:{wrong:"集合会自动去重。", why:"重复的 2 只留一个，重复的 5 也只留一个，最后只剩 2 和 5 两个数。", fix:"集合的本事：重复的只算一个。"},
+      hints:["保安只放每个人进去一次。","把重复的先划掉再数。"] },
+    { type:"fill", tag:"填一填", q:"补全代码：显示元组 point 的第一个数（point = (3, 6, 9)）",
+      before:"print(point[_____])", answer:"0", note:"填第一个的编号",
+      explain:{wrong:"取东西的编号规矩没变。", why:"元组取东西和列表一样用 [编号]，编号同样从 0 开始。", fix:"把空填成 0"},
+      hints:["和列表一模一样的规矩。","从 0 开始。"] },
+    { type:"choice", tag:"想一想", q:"哪些数据最适合装进元组？",
+      options:["出生年月日（不会变）","购物车里的商品（常增减）","每天的步数（天天新增）","通讯录（要加人）"], answer:0,
+      explain:{wrong:"元组的特点是不能改。", why:"要增减、要修改的用列表；定下来不变的才适合元组，装进去谁也改不了，更安全。", fix:"选元组就看一条：这份数据以后改不改。"},
+      hints:["元组建好后动不了。","哪份数据是天生不变的？"] },
+    { type:"code", tag:"自己写", q:"把 3、6、9 装进元组 t，用 print 显示 t 的第二个数（目标输出：6）",
+      starter:"", expected:["6"],
+      explain:{wrong:"检查：元组是小括号吗？第二个数编号是 1 吗？", why:"t = (3, 6, 9) 建元组，编号从 0 数：0→3、1→6、2→9，所以 print(t[1])。", fix:"t = (3, 6, 9)\nprint(t[1])"},
+      hints:["第一行用小括号装三个数。","第二个数 = 编号 1。"] }
+  ]
+},
+{
+  id:19, icon:"boss", boss:true, title:"单词篇 Boss 战", sub:"毕业考：列表与字典综合挑战",
+  teach:{
+    tag:"Boss 关 · 第二章毕业考",
+    html:"第二章的本事你都学齐了：<b>列表</b>排队装东西、<b>下标</b>按编号取、<b>len</b> 数个数、<b>append</b> 往队尾加、<b>字典</b>按名字查还能增改、<b>布尔与比较</b>问是非、<b>if</b> 让程序拿主意。<br/><br/>这一关全是混着出的招，拆招的方法不变：先看清这题在考列表、字典还是判断，再动手。",
+    code:'bag = ["地图", "水壶"]\nbag.append("面包")\nhero = {"名字": "小生", "道具数": len(bag)}\nprint(f"{hero[\'名字\']}带了{hero[\'道具数\']}件道具")',
+    out:"小生带了3件道具",
+    analogy:"⚔️ 就像 Boss 把学过的招式连起来打：别慌，一招一招拆，它用的全是你的招。",
+    tip:"综合题先分工：哪一行在建数据、哪一行在改数据、哪一行在显示。分好工就不乱了。"
+  },
+  exercises:[
+    { type:"choice", tag:"Boss · 第1招", q:"bag = [\"地图\", \"水壶\", \"面包\"]，bag[2] 是什么？",
+      options:["面包","水壶","地图","报错"], answer:0,
+      explain:{wrong:"编号从 0 开始数。", why:"0 是地图、1 是水壶、2 是面包，所以 bag[2] 是面包。", fix:"老规矩：从 0 开始数格子。"},
+      hints:["把三个东西标上 0、1、2。","编号 2 是第几个？"] },
+    { type:"fill", tag:"Boss · 第2招", q:"补全代码：数一数 bag 里有几件道具并显示",
+      before:"print(_____(bag))", answer:"len", note:"填数个数用的单词",
+      explain:{wrong:"数个数的工具是 len。", why:"len(bag) 会数出列表里东西的个数。", fix:"把空填成 len"},
+      hints:["第二章最常用的工具之一。","3 个字母。"] },
+    { type:"build", tag:"Boss · 第3招", q:"拼出代码：查出 hero 字典里的「名字」并显示",
+      chips:['print','(hero["名字"])'], answer:['print','(hero["名字"])'],
+      explain:{wrong:"顺序不对。", why:"print 包住字典查找：hero[\"名字\"]，键名要穿引号。", fix:"顺序：print → (hero[\"名字\"])"},
+      hints:["先写 print。","字典按名字查，键要穿引号。"] },
+    { type:"code", tag:"Boss · 第4招", q:"把「苹果」和「香蕉」装进列表 fruits，再 append 一个「橙子」，最后用 print 显示列表里有几种水果（目标输出：3）",
+      starter:"", expected:["3"],
+      explain:{wrong:"三行逐个查：装列表、append、len 显示，别漏任何一行。", why:"装 2 个 + append 1 个 = 3 个，len 数出来正是 3。", fix:"fruits = [\"苹果\", \"香蕉\"]\nfruits.append(\"橙子\")\nprint(len(fruits))"},
+      hints:["append 单独写一行。","最后一行用 len 显示个数。"] },
+    { type:"code", tag:"Boss · 决胜招", q:"最后一击！建字典 hero：「名字」是「小生」，「等级」是 6；再写 if：如果 hero 的等级大于等于 5，就 print 显示「可以进阶」（目标输出：可以进阶）",
+      starter:"", expected:["可以进阶"],
+      explain:{wrong:"检查：if 的条件里是 hero[\"等级\"] >= 5 吗？冒号和缩进齐了吗？", why:"先从字典取出等级再比较：6 >= 5 是 True，缩进的 print 就会执行。", fix:"hero = {\"名字\": \"小生\", \"等级\": 6}\nif hero[\"等级\"] >= 5:\n    print(\"可以进阶\")"},
+      hints:["一共三行：建字典、if 一行、缩进 print 一行。","if 条件里要先用 hero[\"等级\"] 取出等级。"] }
+  ]
 }
 ];
 
 /* ================= 状态 ================= */
 var TITLES = ["新手勇者","见习勇者","铁剑勇者","银甲勇者","金光勇者","屠龙勇者"];
+var APP_VERSION = "v6-2026-11-12";
 var state = {
   name:"", xp:0, coins:0,
   done:{},            // lessonId -> stars
   answered:0, firstTryRight:0,
-  mistakes:[]         // {lessonId, exIdx, q, why}
+  mistakes:[],        // {lessonId, exIdx, q, why}
+  pwdHash:""          // 账号密码的 SHA-256 哈希（不存明文），随进度一起同步
 };
 function levelOf(xp){ return Math.min(6, Math.floor(xp/100)+1); }
 function levelTitle(xp){ return TITLES[levelOf(xp)-1]; }
@@ -838,7 +1203,7 @@ var firebaseConfig = {
   appId: "1:119017704032:web:9f50cbeda69d20441f1105",
   measurementId: "G-DM3LGCZ2HY"
 };
-var fbDb = null;
+var cloudLoaded = false; // 本次会话是否已成功读到过云端；没读到之前绝不盲推覆盖云端
 var syncDirty = false, syncTimer = null;
 var pushInFlight = false, pushQueued = false;
 var lastLocalMs = 0;
@@ -853,7 +1218,16 @@ function storeSet(k,v){ if(storageOk){ try{ localStorage.setItem(k,v); return; }
 function storeGet(k){ if(storageOk){ try{ return localStorage.getItem(k); }catch(e){} } return (k in memStore) ? memStore[k] : null; }
 function storeRemove(k){ if(storageOk){ try{ localStorage.removeItem(k); }catch(e){} } delete memStore[k]; }
 
+var lastSyncStatus = "local", syncWatchdog = null;
 function setSyncStatus(s){
+  lastSyncStatus = s;
+  /* 看门狗：「同步中」最多挂 12 秒，到时自动落回「本地保存中」，绝不无限转圈 */
+  if(syncWatchdog){ clearTimeout(syncWatchdog); syncWatchdog = null; }
+  if(s === "syncing"){
+    syncWatchdog = setTimeout(function(){
+      if(lastSyncStatus === "syncing"){ syncDirty = true; setSyncStatus("local"); }
+    }, 12000);
+  }
   var pill = document.getElementById("syncPill");
   if(pill){
     if(s === "synced") pill.innerHTML = '<span style="color:var(--green-dark)">●</span> 已同步';
@@ -875,16 +1249,85 @@ function setSyncStatus(s){
       "⚠️ 云端暂时连不上，进度已先存好，联网后会自动补同步。";
   }
 }
-function initFirebase(){
-  if(fbDb) return true;
-  try{
-    if(typeof firebase === "undefined" || !firebase.initializeApp) return false;
-    if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    fbDb = firebase.firestore();
-    return !!fbDb;
-  }catch(e){
-    try{ fbDb = firebase.firestore(); return !!fbDb; }catch(e2){ return false; }
+/* 云端读写走 Firestore REST 接口（普通 HTTPS 请求）：
+   之前的网页 SDK 用长连接通道，在预览/沙盒 iframe 里会一直挂起、永不返回，
+   界面就卡死在「同步中」。REST 是短请求，再加 5 秒硬超时，失败立刻降级。 */
+function fsDocUrl(name){
+  return "https://firestore.googleapis.com/v1/projects/" + firebaseConfig.projectId +
+    "/databases/(default)/documents/users/" + encodeURIComponent(docIdFor(name || state.name));
+}
+function fetchTimeout(url, opts, ms){
+  return new Promise(function(resolve, reject){
+    var settled = false;
+    var ctl = ("AbortController" in window) ? new AbortController() : null;
+    opts = opts || {};
+    if(ctl) opts.signal = ctl.signal;
+    var t = setTimeout(function(){
+      if(settled) return; settled = true;
+      if(ctl){ try{ ctl.abort(); }catch(e){} }
+      reject(new Error("timeout"));
+    }, ms || 5000);
+    fetch(url, opts).then(function(r){
+      if(settled) return; settled = true; clearTimeout(t); resolve(r);
+    }, function(e){
+      if(settled) return; settled = true; clearTimeout(t); reject(e);
+    });
+  });
+}
+function toFsValue(v){
+  if(v === null || v === undefined) return { nullValue: null };
+  if(typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if(typeof v === "string") return { stringValue: v };
+  if(typeof v === "boolean") return { booleanValue: v };
+  if(Array.isArray(v)) return { arrayValue: { values: v.map(toFsValue) } };
+  if(typeof v === "object"){
+    var f = {};
+    Object.keys(v).forEach(function(k){ f[k] = toFsValue(v[k]); });
+    return { mapValue: { fields: f } };
   }
+  return { stringValue: String(v) };
+}
+function fromFsValue(v){
+  if(!v) return null;
+  if("stringValue" in v) return v.stringValue;
+  if("integerValue" in v) return parseInt(v.integerValue, 10);
+  if("doubleValue" in v) return v.doubleValue;
+  if("booleanValue" in v) return v.booleanValue;
+  if("timestampValue" in v) return v.timestampValue;
+  if("nullValue" in v) return null;
+  if("mapValue" in v){
+    var o = {}, f = (v.mapValue && v.mapValue.fields) || {};
+    Object.keys(f).forEach(function(k){ o[k] = fromFsValue(f[k]); });
+    return o;
+  }
+  if("arrayValue" in v) return ((v.arrayValue && v.arrayValue.values) || []).map(fromFsValue);
+  return null;
+}
+/* 读云端：成功返回进度对象；云端还没有这份存档返回 null；失败/超时抛错 */
+function cloudGet(name){
+  return fetchTimeout(fsDocUrl(name), { method: "GET" }, 5000).then(function(r){
+    if(r.status === 404) return null;
+    if(!r.ok) throw new Error("http " + r.status);
+    return r.json();
+  }).then(function(j){
+    if(!j) return null;
+    var o = {}, f = j.fields || {};
+    Object.keys(f).forEach(function(k){ o[k] = fromFsValue(f[k]); });
+    return o;
+  });
+}
+/* 写云端：整份覆盖写入（调用方保证写之前已和云端合并过） */
+function cloudSet(data){
+  var fields = {};
+  Object.keys(data).forEach(function(k){ fields[k] = toFsValue(data[k]); });
+  return fetchTimeout(fsDocUrl(), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: fields })
+  }, 5000).then(function(r){
+    if(!r.ok) throw new Error("http " + r.status);
+    return true;
+  });
 }
 function docIdFor(name){
   if(name && name !== "." && name !== ".." && name.indexOf("/") < 0 && name.indexOf("__") !== 0) return name;
@@ -893,7 +1336,8 @@ function docIdFor(name){
 function snapshot(){
   return {
     name: state.name, xp: state.xp, coins: state.coins, done: state.done,
-    answered: state.answered, firstTryRight: state.firstTryRight, mistakes: state.mistakes
+    answered: state.answered, firstTryRight: state.firstTryRight, mistakes: state.mistakes,
+    pwdHash: state.pwdHash || ""
   };
 }
 function applyData(d){
@@ -904,6 +1348,7 @@ function applyData(d){
   state.answered = d.answered || 0;
   state.firstTryRight = d.firstTryRight || 0;
   state.mistakes = Array.isArray(d.mistakes) ? d.mistakes : [];
+  if(d.pwdHash) state.pwdHash = d.pwdHash;
 }
 function localKey(name){ return "xs_python_state_" + name; }
 function saveLocal(){
@@ -940,29 +1385,53 @@ function mergeData(local, remote){
     answered: winner.answered || 0,
     firstTryRight: winner.firstTryRight || 0,
     mistakes: Array.isArray(newer.mistakes) ? newer.mistakes : [],
+    pwdHash: remote.pwdHash || local.pwdHash || "",
     updatedAtMs: Math.max(local.updatedAtMs || 0, remote.updatedAtMs || 0)
   };
 }
 function pushCloud(){
   if(!state.name) return;
   saveLocal();
-  if(!navigator.onLine || !initFirebase()){ syncDirty = true; setSyncStatus("local"); return; }
+  if(!navigator.onLine){ syncDirty = true; setSyncStatus("local"); return; }
   if(pushInFlight){ pushQueued = true; return; }
   pushInFlight = true;
   setSyncStatus("syncing");
-  var data = snapshot();
-  data.updatedAtMs = Date.now();
-  try{ data.updatedAt = firebase.firestore.FieldValue.serverTimestamp(); }catch(e){}
-  fbDb.collection("users").doc(docIdFor(state.name)).set(data).then(function(){
+  function finishPush(ok){
     pushInFlight = false;
     if(pushQueued){ pushQueued = false; pushCloud(); return; }
-    syncDirty = false;
-    setSyncStatus("synced");
-  }).catch(function(){
-    pushInFlight = false;
-    syncDirty = true;
-    setSyncStatus("local");
-  });
+    syncDirty = !ok;
+    setSyncStatus(ok ? "synced" : "local");
+  }
+  function doPush(extra){
+    var data = snapshot();
+    data.updatedAtMs = Date.now();
+    if(extra){ /* 闯关途中不回滚界面状态，但要保住云端已有的更高进度 */
+      if(extra.done) Object.keys(extra.done).forEach(function(k){
+        data.done[k] = Math.max(data.done[k] || 0, extra.done[k] || 0);
+      });
+      data.xp = Math.max(data.xp, extra.xp || 0);
+      data.coins = Math.max(data.coins, extra.coins || 0);
+      if(!data.pwdHash && extra.pwdHash) data.pwdHash = extra.pwdHash;
+    }
+    cloudSet(data).then(function(){ finishPush(true); }, function(){ finishPush(false); });
+  }
+  if(cloudLoaded){ doPush(null); return; }
+  /* 本次会话还没成功读过云端：先读回来合并，再写，
+     绝不拿本机（可能是空的）进度直接覆盖云端 */
+  cloudGet().then(function(remote){
+    cloudLoaded = true;
+    if(remote && !session){
+      var local = loadLocal(state.name);
+      var cur = snapshot(); cur.updatedAtMs = local.updatedAtMs || 0;
+      if(local) local = mergeData(local, cur); else local = cur;
+      applyData(mergeData(local, remote));
+      saveLocal();
+      renderMain();
+      doPush(null);
+    } else {
+      doPush(remote);
+    }
+  }, function(){ finishPush(false); });
 }
 function scheduleSync(){
   saveLocal();
@@ -975,34 +1444,46 @@ function flushSync(){
   if(syncTimer){ clearTimeout(syncTimer); syncTimer = null; }
   pushCloud();
 }
-/* 登录后：拉云端 → 与本机合并 → 回写云端 */
-function pullAndMerge(done){
-  var finished = false;
-  function fin(){ if(done) done(); }
-  if(!navigator.onLine || !initFirebase()){ setSyncStatus("local"); fin(); return; }
+/* 登录后：拉云端 → 与本机合并 → 回写云端。
+   每次请求 5 秒硬超时：失败立刻显示本机进度 + 「本地保存中」，自动重试 2 次，
+   失败时绝不把本机进度推上去覆盖云端。 */
+function pullAndMerge(done, attempt){
+  attempt = attempt || 0;
+  var called = false;
+  function fin(){ if(!called){ called = true; if(done) done(); } }
+  if(!navigator.onLine){ setSyncStatus("local"); fin(); return; }
   setSyncStatus("syncing");
-  var timer = setTimeout(function(){
-    if(finished) return; finished = true;
-    syncDirty = true; setSyncStatus("local"); pushCloud(); fin();
-  }, 6000);
-  fbDb.collection("users").doc(docIdFor(state.name)).get().then(function(snap){
-    if(finished) return; finished = true; clearTimeout(timer);
-    if(snap.exists){
+  cloudGet().then(function(remote){
+    cloudLoaded = true;
+    if(remote){
       var local = loadLocal(state.name);
       var cur = snapshot(); cur.updatedAtMs = lastLocalMs || Date.now();
       if(local) local = mergeData(local, cur); else local = cur;
-      var merged = mergeData(local, snap.data());
-      applyData(merged);
+      applyData(mergeData(local, remote));
       saveLocal();
     }
-    pushCloud();
-    fin();
-  }).catch(function(){
-    if(finished) return; finished = true; clearTimeout(timer);
-    syncDirty = true; setSyncStatus("local"); pushCloud(); fin();
+    var data = snapshot();
+    data.updatedAtMs = Date.now();
+    cloudSet(data).then(function(){
+      syncDirty = false; setSyncStatus("synced"); fin();
+    }, function(){
+      syncDirty = true; setSyncStatus("local"); fin();
+    });
+  }, function(){
+    syncDirty = true;
+    setSyncStatus("local");
+    if(attempt < 2 && state.name){
+      setTimeout(function(){ if(state.name && !cloudLoaded) pullAndMerge(done, attempt + 1); }, 4000);
+    } else {
+      fin();
+    }
   });
 }
-window.addEventListener("online", function(){ if(state.name) pushCloud(); });
+window.addEventListener("online", function(){
+  if(!state.name) return;
+  if(cloudLoaded) pushCloud();
+  else pullAndMerge(function(){ renderMain(); });
+});
 window.addEventListener("offline", function(){ setSyncStatus("local"); });
 /* 页面被刷新、关掉或切到后台时，立刻把最新进度存好并推云端，避免定时器被打断丢进度 */
 window.addEventListener("pagehide", function(){ if(state.name){ saveLocal(); flushSync(); } });
@@ -1026,29 +1507,96 @@ function toast(msg){
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function escA(s){ return esc(s).replace(/"/g,"&quot;"); }
 
-/* ================= 欢迎页 ================= */
-$("startBtn").addEventListener("click", function(){
-  var name = $("nameInput").value.trim();
-  if(!name){ $("nameErr").textContent="先给勇者起个名字吧，一个字也行。"; $("nameInput").focus(); return; }
-  $("nameErr").textContent="";
-  state.name = name;
+/* ================= 欢迎页（勇者名 + 密码登录） =================
+   密码只存 SHA-256 哈希，不存明文。
+   老账号（云端还没有密码）第一次登录时，输入的密码即被设为该账号密码，不会被锁在门外。
+   本台设备登录成功后会记住账号，下次打开自动进入；换设备必须输对密码。 */
+function hashPwd(name, pwd){
+  var s = "xs-pwd:" + name + ":" + pwd;
+  if(window.crypto && crypto.subtle && window.TextEncoder){
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(function(buf){
+      var arr = Array.prototype.map.call(new Uint8Array(buf), function(b){ return ("0"+b.toString(16)).slice(-2); });
+      return arr.join("");
+    });
+  }
+  var h1 = 5381, h2 = 52711;
+  for(var i=0;i<s.length;i++){ var c = s.charCodeAt(i); h1 = ((h1*33) ^ c) >>> 0; h2 = ((h2*31) ^ c) >>> 0; }
+  return "fb" + h1.toString(16) + h2.toString(16);
+}
+function enterGame(name, welcomeBack){
+  cloudLoaded = false;
   var local = loadLocal(name);
-  if(local) applyData(local);
+  if(local){ var keepHash = state.pwdHash; applyData(local); if(keepHash) state.pwdHash = keepHash; }
   saveLocal();
   renderMain();
   showView("view-main");
-  toast("欢迎来到新手村，" + name + "！");
+  toast(welcomeBack ? ("欢迎回来，" + name + "！") : ("欢迎来到新手村，" + name + "！"));
   playPop();
   pullAndMerge(function(){ renderMain(); });
+}
+function loginFail(msg){
+  var btn = $("startBtn");
+  btn.disabled = false; btn.textContent = "开始冒险 →";
+  $("nameErr").textContent = msg;
+}
+$("startBtn").addEventListener("click", function(){
+  var name = $("nameInput").value.trim();
+  var pwd = $("pwdInput").value;
+  var pwd2 = $("pwd2Input").value;
+  if(!name){ $("nameErr").textContent="先给勇者起个名字吧，一个字也行。"; $("nameInput").focus(); return; }
+  if(!pwd){ $("nameErr").textContent="要输入密码哦。第一次玩就自己定一个，至少 4 位，记好它。"; $("pwdInput").focus(); return; }
+  $("nameErr").textContent="";
+  var btn = $("startBtn");
+  btn.disabled = true; btn.textContent = "正在登录…";
+  hashPwd(name, pwd).then(function(hash){
+    state.name = name;
+    cloudGet(name).then(function(remote){
+      var cloudHash = remote && remote.pwdHash;
+      if(cloudHash){
+        if(cloudHash !== hash){ state.name=""; loginFail("密码不对，这个账号已经设过密码了。再想想，或者换个勇者名重新开始。"); return; }
+        state.pwdHash = cloudHash;
+        btn.disabled = false; btn.textContent = "开始冒险 →";
+        enterGame(name, true);
+        return;
+      }
+      /* 云端没有密码：新账号，或老账号第一次设密码 */
+      if(pwd.length < 4){ state.name=""; loginFail("密码至少 4 位，再定一个长一点的。"); return; }
+      if(pwd2 && pwd2 !== pwd){ state.name=""; loginFail("两次输入的密码不一样，确认密码那栏再输一遍。"); return; }
+      state.pwdHash = hash;
+      btn.disabled = false; btn.textContent = "开始冒险 →";
+      enterGame(name, !!remote);
+      flushSync();
+      toast(remote ? "密码已设置好，下次要用这个密码登录" : "账号创建成功，密码已设置好");
+    }, function(){
+      /* 云端暂时连不上：用本机存档 + 本机存的密码哈希兜底登录，联网后自动同步 */
+      var local = loadLocal(name);
+      if(local && local.pwdHash){
+        if(local.pwdHash !== hash){ state.name=""; loginFail("密码不对（现在是离线状态，按本机记录校验）。"); return; }
+        state.pwdHash = local.pwdHash;
+        btn.disabled = false; btn.textContent = "开始冒险 →";
+        enterGame(name, true);
+        return;
+      }
+      if(pwd.length < 4){ state.name=""; loginFail("密码至少 4 位，再定一个长一点的。"); return; }
+      if(pwd2 && pwd2 !== pwd){ state.name=""; loginFail("两次输入的密码不一样，确认密码那栏再输一遍。"); return; }
+      state.pwdHash = hash;
+      btn.disabled = false; btn.textContent = "开始冒险 →";
+      enterGame(name, !!local);
+    });
+  }, function(){
+    loginFail("密码处理失败，刷新页面再试一次。");
+  });
 });
 $("nameInput").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
+$("pwdInput").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
+$("pwd2Input").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
 
 /* ================= 主界面 ================= */
 function renderMain(){
   var doneCount = Object.keys(state.done).length;
   $("statXp").textContent = state.xp;
   $("statCoin").textContent = state.coins;
-  $("statDone").textContent = doneCount + "/9";
+  $("statDone").textContent = doneCount + "/" + LESSONS.length;
   var lv = levelOf(state.xp);
   $("statLevel").textContent = "Lv." + lv + " " + levelTitle(state.xp);
   $("mapGreeting").textContent = state.name + "的新手村";
@@ -1076,6 +1624,12 @@ function renderPath(){
   var path = $("path"); path.innerHTML="";
   var doneCount = Object.keys(state.done).length;
   LESSONS.forEach(function(lesson, i){
+    if(lesson.id===1 || lesson.id===10){
+      var div = document.createElement("div");
+      div.className = "chapter-divider";
+      div.innerHTML = "<span>" + (lesson.id===1 ? "第一章 · 字母篇" : "第二章 · 单词篇") + "</span>";
+      path.appendChild(div);
+    }
     var done = !!state.done[lesson.id];
     var unlocked = i===0 || !!state.done[LESSONS[i-1].id];
     var isCurrent = unlocked && !done;
@@ -1123,10 +1677,10 @@ function renderMistakes(){
 function renderMe(){
   $("meName").textContent = state.name || "勇者";
   var lv = levelOf(state.xp);
-  $("meTitle").textContent = "Lv." + lv + " " + levelTitle(state.xp) + " · 第一章 字母篇";
+  $("meTitle").textContent = "Lv." + lv + " " + levelTitle(state.xp) + " · " + (state.done[9] ? "第二章 单词篇" : "第一章 字母篇");
   $("meXp").textContent = state.xp;
   $("meCoin").textContent = state.coins;
-  $("meDone").textContent = Object.keys(state.done).length + " / 9";
+  $("meDone").textContent = Object.keys(state.done).length + " / " + LESSONS.length;
   $("meAcc").textContent = state.answered ? Math.round(state.firstTryRight/state.answered*100) + "%" : "—";
   var road = TITLES.map(function(t, i){
     var got = lv > i;
@@ -1172,7 +1726,9 @@ function tokenize(src){
       var w=""; while(i<src.length && /[A-Za-z0-9_]/.test(src[i])){ w+=src[i]; i++; }
       toks.push({t:"name", v:w}); continue;
     }
-    if("+-*/%(),".indexOf(c)>=0){ toks.push({t:c, v:c}); i++; continue; }
+    var two = src.substr(i,2);
+    if(two==="=="||two==="!="||two===">="||two==="<="){ toks.push({t:two, v:two}); i+=2; continue; }
+    if("+-*/%(),[]{}:.<>".indexOf(c)>=0){ toks.push({t:c, v:c}); i++; continue; }
     throw new PyError("不认识的符号："+c);
   }
   return toks;
@@ -1181,7 +1737,24 @@ function evalExpr(src, env, simInput){
   var toks = tokenize(src), pos = 0;
   function peek(){ return toks[pos]; }
   function next(){ return toks[pos++]; }
-  function parseExpr(){ return parseAdd(); }
+  function parseExpr(){ return parseCmp(); }
+  function parseCmp(){
+    var left = parseAdd();
+    while(peek() && ["==","!=",">","<",">=","<="].indexOf(peek().t)>=0){
+      var op = next().t, right = parseAdd();
+      left = cmpOp(left, op, right);
+    }
+    return left;
+  }
+  function cmpOp(a, op, b){
+    if(op==="==") return a===b;
+    if(op==="!=") return a!==b;
+    if(typeof a!=="number"||typeof b!=="number") throw new PyError("比较大小只能用在数字上");
+    if(op===">") return a>b;
+    if(op==="<") return a<b;
+    if(op===">=") return a>=b;
+    if(op==="<=") return a<=b;
+  }
   function parseAdd(){
     var left = parseMul();
     while(peek() && (peek().t==="+"||peek().t==="-")){
@@ -1191,9 +1764,9 @@ function evalExpr(src, env, simInput){
     return left;
   }
   function parseMul(){
-    var left = parseAtom();
+    var left = parsePostfix();
     while(peek() && (peek().t==="*"||peek().t==="/"||peek().t==="%")){
-      var op = next().t, right = parseAtom();
+      var op = next().t, right = parsePostfix();
       left = applyOp(left, op, right);
     }
     return left;
@@ -1222,8 +1795,62 @@ function evalExpr(src, env, simInput){
     if(tk.t==="num") return tk.v;
     if(tk.t==="str") return tk.v;
     if(tk.t==="-"){ var v = parseAtom(); if(typeof v!=="number") throw new PyError("负号只能用在数字前"); return -v; }
-    if(tk.t==="("){ var e = parseExpr(); var close = next(); if(!close||close.t!==")") throw new PyError("少了一个右括号 )"); return e; }
+    if(tk.t==="("){
+      if(peek() && peek().t===")"){ next(); return {__tuple:[]}; }
+      var e0 = parseExpr();
+      if(peek() && peek().t===","){
+        var items = [e0];
+        while(peek() && peek().t===","){ next(); if(peek() && peek().t===")") break; items.push(parseExpr()); }
+        var ct = next(); if(!ct||ct.t!==")") throw new PyError("少了一个右括号 )");
+        return {__tuple: items};
+      }
+      var close = next(); if(!close||close.t!==")") throw new PyError("少了一个右括号 )"); return e0;
+    }
+    if(tk.t==="["){
+      var lst = [];
+      if(peek() && peek().t==="]"){ next(); return lst; }
+      while(true){
+        lst.push(parseExpr());
+        var sep = next();
+        if(sep && sep.t==="]") break;
+        if(!sep || sep.t!==",") throw new PyError("列表里少了一个逗号或方括号");
+        if(peek() && peek().t==="]"){ next(); break; }
+      }
+      return lst;
+    }
+    if(tk.t==="{"){
+      if(peek() && peek().t==="}"){ next(); return {}; }
+      var first = parseExpr();
+      if(peek() && peek().t===":"){
+        var dict = {};
+        var key = first;
+        while(true){
+          next(); // eat ':'
+          dict[String(key)] = parseExpr();
+          var sep2 = next();
+          if(sep2 && sep2.t==="}") break;
+          if(!sep2 || sep2.t!==",") throw new PyError("字典里少了一个逗号或大括号");
+          if(peek() && peek().t==="}"){ next(); break; }
+          key = parseExpr();
+          if(!peek() || peek().t!==":") throw new PyError("字典的键后面要跟冒号 :");
+        }
+        return dict;
+      }
+      var set = [first];
+      while(peek() && peek().t===","){
+        next();
+        if(peek() && peek().t==="}") break;
+        var sv = parseExpr();
+        if(set.indexOf(sv)<0) set.push(sv);
+      }
+      var cs = next(); if(!cs||cs.t!=="}") throw new PyError("少了一个大括号 }");
+      if(set.indexOf(first)<0) set.unshift(first);
+      return {__set: set.filter(function(x,ix){ return set.indexOf(x)===ix; })};
+    }
     if(tk.t==="name"){
+      if(tk.v==="True") return true;
+      if(tk.v==="False") return false;
+      if(tk.v==="None") return null;
       if(tk.v==="f" || tk.v==="F"){ /* handled outside */ }
       var nx = peek();
       if(nx && nx.t==="("){
@@ -1231,6 +1858,7 @@ function evalExpr(src, env, simInput){
         if(tk.v==="input"){ /* 参数是问题文字，跳过 */ parseExpr(); var c1=next(); if(!c1||c1.t!==")") throw new PyError("input 少了右括号"); return simInput!=null? simInput : ""; }
         var arg = parseExpr();
         var c2 = next(); if(!c2||c2.t!==")") throw new PyError("少了右括号 )");
+        if(tk.v==="len"){ return pyLen(arg); }
         if(tk.v==="int"){
           if(typeof arg==="number") return Math.trunc(arg);
           var num = Number(String(arg).trim());
@@ -1246,15 +1874,97 @@ function evalExpr(src, env, simInput){
     }
     throw new PyError("读不懂这里："+tk.v);
   }
+  function parsePostfix(){
+    var v = parseAtom();
+    while(true){
+      var tk = peek();
+      if(tk && tk.t==="["){
+        next();
+        var start = null, isSlice = false;
+        if(peek() && peek().t!==":" && peek().t!=="]"){ start = parseExpr(); }
+        var end = null;
+        if(peek() && peek().t===":"){
+          isSlice = true; next();
+          if(peek() && peek().t!=="]"){ end = parseExpr(); }
+        }
+        var cl = next(); if(!cl||cl.t!=="]") throw new PyError("少了一个右方括号 ]");
+        v = isSlice ? pySlice(v, start, end) : pyIndex(v, start);
+      } else if(tk && tk.t==="."){
+        next();
+        var m = next(); if(!m || m.t!=="name") throw new PyError("小圆点后面要跟工具名");
+        var op = next(); if(!op || op.t!=="(") throw new PyError(m.v + " 后面少了括号");
+        var arg = null, has = false;
+        if(peek() && peek().t!==")"){ arg = parseExpr(); has = true; }
+        var cc = next(); if(!cc || cc.t!==")") throw new PyError("少了右括号 )");
+        v = pyMethod(v, m.v, arg, has);
+      } else break;
+    }
+    return v;
+  }
   var result = parseExpr();
   if(pos < toks.length) throw new PyError("这行代码后面还有没读完的部分，检查一下符号");
   return result;
 }
-function pyType(v){ if(typeof v==="string") return "str"; if(typeof v==="number") return Number.isInteger(v)?"int":"float"; return "str"; }
+function pyType(v){
+  if(typeof v==="boolean") return "bool";
+  if(typeof v==="string") return "str";
+  if(typeof v==="number") return Number.isInteger(v)?"int":"float";
+  if(Array.isArray(v)) return "list";
+  if(v && v.__tuple) return "tuple";
+  if(v && v.__set) return "set";
+  if(v && typeof v==="object") return "dict";
+  return "str";
+}
+function pyRepr(v){ if(typeof v==="string") return "'"+v+"'"; return pyStr(v); }
 function pyStr(v){
+  if(typeof v==="boolean") return v ? "True" : "False";
+  if(v===null || v===undefined) return "None";
   if(typeof v==="string") return v;
   if(typeof v==="number"){ return Number.isInteger(v) ? String(v) : String(Math.round(v*1000000)/1000000); }
+  if(Array.isArray(v)) return "[" + v.map(pyRepr).join(", ") + "]";
+  if(v && v.__tuple) return "(" + v.__tuple.map(pyRepr).join(", ") + ")";
+  if(v && v.__set) return "{" + v.__set.map(pyRepr).join(", ") + "}";
+  if(v && typeof v==="object") return "{" + Object.keys(v).map(function(k){ return pyRepr(k)+": "+pyRepr(v[k]); }).join(", ") + "}";
   return String(v);
+}
+function pyLen(v){
+  if(typeof v==="string" || Array.isArray(v)) return v.length;
+  if(v && v.__tuple) return v.__tuple.length;
+  if(v && v.__set) return v.__set.length;
+  if(v && typeof v==="object") return Object.keys(v).length;
+  throw new PyError("len() 只能数文字、列表、元组、字典和集合");
+}
+function pyIndex(v, idx){
+  if(typeof v==="string" || Array.isArray(v)){
+    var i = idx; if(typeof i!=="number") throw new PyError("编号要用数字");
+    if(i<0) i += v.length;
+    if(i<0 || i>=v.length) throw new PyError("编号超出范围了");
+    return v[i];
+  }
+  if(v && v.__tuple) return pyIndex(v.__tuple, idx);
+  if(v && typeof v==="object"){
+    var k = String(idx);
+    if(Object.prototype.hasOwnProperty.call(v, k)) return v[k];
+    throw new PyError("字典里没有这个键：" + k);
+  }
+  throw new PyError("这个东西不能用 [ ] 取内容");
+}
+function pySlice(v, a, b){
+  var s = (a===null||a===undefined) ? undefined : a;
+  var e = (b===null||b===undefined) ? undefined : b;
+  if(typeof v==="string" || Array.isArray(v)) return v.slice(s, e);
+  if(v && v.__tuple) return {__tuple: v.__tuple.slice(s, e)};
+  throw new PyError("这个东西不能切片");
+}
+function pyMethod(v, name, arg, has){
+  if(name==="append"){
+    if(!Array.isArray(v)) throw new PyError("append 是列表的工具");
+    if(!has) throw new PyError("append 的括号里要放要加的东西");
+    v.push(arg); return null;
+  }
+  if(name==="upper"){ if(typeof v!=="string") throw new PyError("upper 是文字的工具"); return v.toUpperCase(); }
+  if(name==="lower"){ if(typeof v!=="string") throw new PyError("lower 是文字的工具"); return v.toLowerCase(); }
+  throw new PyError("还没学过这个工具：" + name);
 }
 function evalFString(content, env, simInput){
   return content.replace(/\{([^{}]+)\}/g, function(_, expr){
@@ -1277,6 +1987,18 @@ function runPython(code, simInput){
     var line = raw.slice(0,cut).trim();
     if(!line) continue;
     var m;
+    var im;
+    if((im = line.match(/^if\s+(.+):\s*$/))){
+      var cond = evalExpr(im[1], env, simInput);
+      if(!cond){
+        while(li+1 < lines.length){
+          var nxt = lines[li+1];
+          if(nxt.trim()===""){ li++; continue; }
+          if(/^\s/.test(nxt)){ li++; } else break;
+        }
+      }
+      continue;
+    }
     if((m = line.match(/^print\s*\((.*)\)\s*$/))){
       var inner = m[1].trim();
       if(inner===""){ out.push(""); continue; }
@@ -1288,6 +2010,22 @@ function runPython(code, simInput){
       var fm2 = rhs.match(/^f("([^"]*)"|'([^']*)')$/);
       if(fm2){ env[m[1]] = evalFString(fm2[2]!=null?fm2[2]:fm2[3], env, simInput); continue; }
       env[m[1]] = evalExpr(rhs, env, simInput);
+    } else if((m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\[(.+)\]\s*=\s*(.+)$/))){
+      var obj2 = env[m[1]];
+      if(obj2===undefined) throw new PyError("变量 "+m[1]+" 还没有赋值");
+      var idx2 = evalExpr(m[2], env, simInput);
+      var val2 = evalExpr(m[3], env, simInput);
+      if(Array.isArray(obj2)){
+        var ii = idx2; if(typeof ii!=="number") throw new PyError("编号要用数字");
+        if(ii<0) ii += obj2.length;
+        obj2[ii] = val2;
+      } else if(obj2 && typeof obj2==="object" && !obj2.__tuple && !obj2.__set){
+        obj2[String(idx2)] = val2;
+      } else {
+        throw new PyError("只有列表和字典能这样改");
+      }
+    } else if(/^[A-Za-z_][A-Za-z0-9_.]*\(.*\)$/.test(line) && line.indexOf(".")>0){
+      evalExpr(line, env, simInput);
     } else {
       throw new PyError("这一行读不懂：「"+line+"」");
     }
@@ -1327,10 +2065,11 @@ function tone(freq, delay, dur, type, vol, slideTo){
 }
 function playPop(){ tone(540, 0, 0.07, "triangle", 0.07, 760); }
 function playCorrect(){
-  // 多邻国式：清脆的「叮—咚」上扬双音 + 一层闪亮泛音
-  tone(659.25, 0, 0.13, "sine", 0.18);
-  tone(987.77, 0.09, 0.26, "sine", 0.2);
-  tone(1318.5, 0.09, 0.2, "triangle", 0.07);
+  // 多邻国式：清脆响亮的「叮—咚」上扬双音 + 两层闪亮泛音（音量已加大）
+  tone(659.25, 0, 0.15, "sine", 0.36);
+  tone(987.77, 0.09, 0.32, "sine", 0.42);
+  tone(1318.5, 0.09, 0.24, "triangle", 0.16);
+  tone(1975.5, 0.09, 0.18, "sine", 0.09);
 }
 function playWrong(){
   tone(220, 0, 0.16, "square", 0.05, 185);
@@ -1352,7 +2091,7 @@ function playFanfare(boss){
     tone(2093, 1.05, 0.6, "sine", 0.13);
   }
 }
-function playStarChime(i){ tone(880 * Math.pow(1.335, i), 0, 0.3, "sine", 0.15); }
+function playStarChime(i){ tone(880 * Math.pow(1.335, i), 0, 0.3, "sine", 0.24); }
 var PRAISE = ["答对了！", "漂亮一击！", "完美命中！", "就是这样，继续冲！", "稳稳拿下！"];
 function pickPraise(){ return PRAISE[Math.floor(Math.random() * PRAISE.length)]; }
 
@@ -1764,9 +2503,11 @@ function finishLesson(passed){
   }
   box.innerHTML =
     '<div class="result-stars">' + starSvg(stars>=1) + starSvg(stars>=2) + starSvg(stars>=3) + '</div>' +
-    '<h2>'+(lesson.boss ? "🏆 第一章毕业！" : "通关啦！")+'</h2>' +
+    '<h2>'+(lesson.boss ? (isLast ? "🏆 第二章毕业！" : "🏆 第一章毕业！") : "通关啦！")+'</h2>' +
     '<p>'+(lesson.boss
-      ? "你打赢了新手村 Boss，字母篇的本事全部到手！<br/>第二章「单词篇」正在准备中，敬请期待。"
+      ? (isLast
+        ? "你打赢了单词篇 Boss，列表、字典的本事全部到手！<br/>第三章「语法篇」正在准备中，敬请期待。"
+        : "你打赢了新手村 Boss，字母篇的本事全部到手！<br/>第二章「单词篇」已经解锁，继续往下打。")
       : "第"+lesson.id+"关「"+esc(lesson.title)+"」完成，下一关已经解锁。")+'</p>' +
     '<div class="result-stats">' +
       '<div class="result-stat"><div class="n" style="color:var(--yellow-dark)">+'+totalXp+'</div><div class="l">经验 XP（含通关奖励 '+bonus+'）</div></div>' +
@@ -1797,6 +2538,10 @@ $("dlDeployBtn").addEventListener("click", function(){
     var fbEl = clone.querySelector("#feedback"); if(fbEl) fbEl.className = "feedback";
     var lf = clone.querySelector("#lessonFoot"); if(lf) lf.style.display = "";
     var ni = clone.querySelector("#nameInput"); if(ni){ ni.value = ""; ni.removeAttribute("value"); }
+    ["pwdInput","pwd2Input","newPwdInput"].forEach(function(pid){
+      var pi = clone.querySelector("#"+pid); if(pi){ pi.value = ""; pi.removeAttribute("value"); }
+    });
+    var ub = clone.querySelector("#updBanner"); if(ub) ub.classList.remove("show");
     var ne = clone.querySelector("#nameErr"); if(ne) ne.textContent = "";
     var tm = clone.querySelector("#tab-map"); if(tm) tm.style.display = "";
     var tk = clone.querySelector("#tab-mistakes"); if(tk) tk.style.display = "none";
@@ -1822,16 +2567,70 @@ $("dlDeployBtn").addEventListener("click", function(){
 });
 
 /* ================= 切换勇者 + 自动登录 ================= */
+$("retrySyncBtn").addEventListener("click", function(){
+  if(!state.name) return;
+  toast("正在从云端拉取进度…");
+  pullAndMerge(function(){
+    renderMain();
+    toast(cloudLoaded ? "已和云端对齐，进度是最新的" : "云端暂时连不上，先用本机进度，联网后会自动同步");
+  });
+});
 $("switchUserBtn").addEventListener("click", function(){
   session = null;
-  state = { name:"", xp:0, coins:0, done:{}, answered:0, firstTryRight:0, mistakes:[] };
+  cloudLoaded = false;
+  state = { name:"", xp:0, coins:0, done:{}, answered:0, firstTryRight:0, mistakes:[], pwdHash:"" };
   storeRemove("xs_python_last_user");
   $("nameInput").value = "";
+  $("pwdInput").value = "";
+  $("pwd2Input").value = "";
   setSyncStatus("local");
   showView("view-welcome");
 });
+$("chgPwdBtn").addEventListener("click", function(){
+  var np = $("newPwdInput").value;
+  if(!state.name){ toast("先登录再改密码"); return; }
+  if(!np || np.length < 4){ toast("新密码至少 4 位"); return; }
+  hashPwd(state.name, np).then(function(h){
+    state.pwdHash = h;
+    $("newPwdInput").value = "";
+    flushSync();
+    toast("新密码已保存，下次登录用新密码");
+  }, function(){ toast("改密码失败，再试一次"); });
+});
+
+/* ================= 版本自动更新 =================
+   每次打开/回到页面都去 GitHub Pages 拉一次线上页面，比对版本号：
+   线上更新了就弹出更新条，点一下刷新即是最新版（进度同时从云端同步）。
+   拉不到（离线/预览环境）就安静跳过，绝不打扰玩游戏。 */
+var DEPLOYED_PAGE_URL = "https://cyberrichlin.github.io/xiaosheng-python.html";
+function checkUpdate(manual){
+  fetchTimeout(DEPLOYED_PAGE_URL + "?vchk=" + Date.now(), { method:"GET", cache:"no-store" }, 6000).then(function(r){
+    if(!r.ok) throw new Error("http " + r.status);
+    return r.text();
+  }).then(function(txt){
+    var m = txt.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+    if(m && m[1] !== APP_VERSION){
+      $("updBanner").classList.add("show");
+      if(manual) toast("发现新版本，点更新条刷新");
+    } else if(manual){
+      toast("已经是最新版啦");
+    }
+  }, function(){
+    if(manual) toast("暂时连不上更新服务器，稍后再试");
+  });
+}
+$("updBtn").addEventListener("click", function(){ checkUpdate(true); });
+$("updReload").addEventListener("click", function(){ location.reload(); });
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "visible") checkUpdate(false);
+});
+(function showVersion(){
+  var el = $("appVer");
+  if(el) el.textContent = APP_VERSION;
+})();
 (function autoLogin(){
   var last = storeGet("xs_python_last_user");
+  setTimeout(function(){ checkUpdate(false); }, 2500);
   if(!last) return;
   var local = loadLocal(last);
   if(!local) return;
@@ -1839,7 +2638,33 @@ $("switchUserBtn").addEventListener("click", function(){
   applyData(local);
   renderMain();
   showView("view-main");
-  pullAndMerge(function(){ renderMain(); });
+  /* 本台设备记住账号可直接进入，但先核对云端密码：
+     云端已设密码、而本机没存过对的密码（比如在别的设备改过密码），就退回登录页输密码 */
+  var localHash = local.pwdHash || "";
+  cloudGet(last).then(function(remote){
+    if(remote && remote.pwdHash && remote.pwdHash !== localHash){
+      session = null;
+      cloudLoaded = false;
+      state = { name:"", xp:0, coins:0, done:{}, answered:0, firstTryRight:0, mistakes:[], pwdHash:"" };
+      storeRemove("xs_python_last_user");
+      $("nameInput").value = last;
+      $("nameErr").textContent = "这个账号已经设了密码，输入密码才能进来。";
+      setSyncStatus("local");
+      showView("view-welcome");
+      return;
+    }
+    cloudLoaded = true;
+    if(remote){
+      var cur = snapshot(); cur.updatedAtMs = local.updatedAtMs || 0;
+      applyData(mergeData(cur, remote));
+      saveLocal();
+    }
+    renderMain();
+    if(!state.pwdHash) toast("这个账号还没设密码，去「我的」页给它设一个更安全");
+    flushSync();
+  }, function(){
+    pullAndMerge(function(){ renderMain(); });
+  });
 })();
 </script>
 </body>
