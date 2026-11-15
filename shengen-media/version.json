@@ -1,1 +1,1 @@
-{"apkUrl":"https://cyberrichlin.github.io/shengen-media/app-v1.4.apk","notes":"LLM改成大模型；没抓到信息只显示一行；登录态接进解析；粘贴链接识别平台；下载清晰度原画放最上面；封面图上方加视频封面；启动自动检查更新。","versionCode":5,"versionName":"1.4"}
+{"apkUrl": "https://cyberrichlin.github.io/shengen-media/app-v1.5.apk", "notes": "新增视频号、即梦AI解析+下载；LLM改成大模型；没抓到信息只显示一行；登录态接进解析；粘贴链接识别平台；下载清晰度原画放最上面；封面图上方加视频封面；启动自动检查更新。", "versionCode": 6, "versionName": "1.5"}
