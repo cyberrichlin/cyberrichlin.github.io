@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0d16">
+<meta name="description" content="网页小游戏合集 · 纯静态、免安装、手机电脑都能玩的多人联机小游戏。">
+<title>网页小游戏合集</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='16' width='52' height='34' rx='8' fill='%231b2238'/%3E%3Crect x='26' y='8' width='12' height='10' rx='3' fill='%23ff8a3d'/%3E%3Cpath d='M22 36h6M25 33v6' stroke='%23ffd54a' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='40' cy='34' r='3' fill='%23ff5c9d'/%3E%3Ccircle cx='46' cy='40' r='3' fill='%237c5cff'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;min-height:100%}
+body{
+  background:#0a0d16;
+  background-image:radial-gradient(900px 520px at 12% -8%,rgba(255,138,61,.16),transparent 60%),radial-gradient(820px 520px at 92% 4%,rgba(124,92,255,.18),transparent 62%),radial-gradient(700px 480px at 50% 110%,rgba(255,92,157,.12),transparent 60%);
+  color:#e9edf7;
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{
+  max-width:920px;margin:0 auto;
+  padding:calc(28px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom));
+}
+header.top{text-align:center;padding:12px 0 6px}
+header.top h1{
+  margin:0;font-size:32px;font-weight:800;letter-spacing:2px;
+  background:linear-gradient(120deg,#ff8a3d,#ff5c9d 45%,#a97bff);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+header.top p{margin:10px 0 0;color:#8b95b2;font-size:14px}
+.tips{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0 6px;
+}
+.tips span{
+  font-size:12.5px;color:#a9b2cc;border:1px solid #232b47;background:#131a2c;
+  border-radius:999px;padding:5px 12px;
+}
+h2.section{
+  font-size:15px;color:#8b95b2;font-weight:600;margin:26px 0 12px;
+  display:flex;align-items:center;gap:10px;
+}
+h2.section::after{content:"";flex:1;height:1px;background:#1f2740}
+
+.games{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.game{
+  position:relative;display:block;text-decoration:none;color:inherit;
+  background:linear-gradient(180deg,rgba(26,32,54,.96),rgba(19,24,42,.96));
+  border:1px solid #232b47;border-radius:18px;padding:18px;
+  box-shadow:0 10px 28px rgba(0,0,0,.28);
+  transition:transform .14s ease,border-color .18s ease,box-shadow .18s ease;
+  overflow:hidden;
+}
+.game::before{
+  content:"";position:absolute;inset:0 auto 0 0;width:4px;
+  background:var(--accent,#7c5cff);opacity:.9;
+}
+.game:hover{transform:translateY(-3px);border-color:#33406b;box-shadow:0 16px 36px rgba(0,0,0,.36)}
+.game:active{transform:translateY(-1px) scale(.995)}
+.game .row1{display:flex;align-items:center;gap:14px}
+.game .ico{
+  width:56px;height:56px;flex:0 0 auto;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
+  border:1px solid #2c3556;
+}
+.game h3{margin:0;font-size:19px;font-weight:700;letter-spacing:.5px}
+.game .tagline{margin:3px 0 0;color:#9aa4c2;font-size:13.5px}
+.game .desc{margin:14px 0 0;color:#c3cbdf;font-size:14px}
+.game .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.game .meta span{
+  font-size:12px;color:#a9b2cc;border:1px solid #2c3556;background:#161d31;
+  border-radius:999px;padding:4px 10px;
+}
+.game .go{
+  margin-top:16px;height:46px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--accent,#7c5cff),rgba(124,92,255,.85));
+  box-shadow:0 8px 20px rgba(0,0,0,.3);
+}
+.game.soon{opacity:.55;cursor:not-allowed}
+.game.soon .go{background:#2a3352;color:#9aa4c2}
+.footnotice{
+  margin:30px 0 0;color:#7b86a5;font-size:12.5px;line-height:1.75;
+  border-top:1px solid #1f2740;padding-top:16px;
+}
+.footnotice b{color:#a9b2cc}
+@media (max-width:420px){
+  .wrap{padding:calc(20px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
+  header.top h1{font-size:27px}
+  .games{grid-template-columns:1fr;gap:14px}
+  .game{padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>网页小游戏合集</h1>
+    <p>纯静态页面 · 免安装 · 手机和电脑都能玩</p>
+    <div class="tips">
+      <span>🚀 点开即玩</span>
+      <span>📱 手机 / 电脑通用</span>
+      <span>🔗 房间号拉朋友联机</span>
+      <span>🛡️ 数据不经过服务器</span>
+    </div>
+  </header>
+
+  <h2 class="section">全部游戏</h2>
+  <div class="games" id="games"></div>
+
+  <div class="footnotice">
+    <b>怎么玩：</b>点击任意游戏卡片进入 → 一个人「创建房间」拿到 6 位房号 → 其他人打开同一游戏页输入房号即可联机（也可以直接点「复制邀请链接」发给朋友）。<br>
+    <b>说明：</b>所有游戏都是纯静态网页，游戏数据在设备之间点对点传输，不经过服务器存储；建议使用手机 / 电脑的现代浏览器（Chrome、Edge、Safari、微信内置浏览器等）打开。
+  </div>
+</div>
+
+<!-- 游戏清单配置：新增游戏只需修改 games.js -->
+<script src="games.js"></script>
+<script>
+(function () {
+  var box = document.getElementById('games');
+  var list = window.GAMES || [];
+
+  if (!list.length) {
+    box.innerHTML = '<div class="game soon"><h3>清单未加载</h3>' +
+      '<p class="desc">未能读取 games.js，请确认它与首页 index.html 在同一目录下。</p></div>';
+    return;
+  }
+
+  list.forEach(function (g) {
+    var a = document.createElement(g.soon ? 'div' : 'a');
+    a.className = 'game' + (g.soon ? ' soon' : '');
+    if (!g.soon) a.href = g.url;
+    if (g.accent) a.style.setProperty('--accent', g.accent);
+
+    var ic = document.createElement('div');
+    ic.className = 'ico';
+    ic.textContent = g.icon || '🎮';
+
+    var h3 = document.createElement('h3');
+    h3.textContent = g.name || '未命名游戏';
+
+    var tg = document.createElement('p');
+    tg.className = 'tagline';
+    tg.textContent = g.tagline || '';
+
+    var left = document.createElement('div');
+    left.style.flex = '1';
+    left.appendChild(h3);
+    left.appendChild(tg);
+
+    var row1 = document.createElement('div');
+    row1.className = 'row1';
+    row1.appendChild(ic);
+    row1.appendChild(left);
+    a.appendChild(row1);
+
+    if (g.desc) {
+      var d = document.createElement('p');
+      d.className = 'desc';
+      d.textContent = g.desc;
+      a.appendChild(d);
+    }
+
+    if (g.meta && g.meta.length) {
+      var m = document.createElement('div');
+      m.className = 'meta';
+      g.meta.forEach(function (t) {
+        var s = document.createElement('span');
+        s.textContent = t;
+        m.appendChild(s);
+      });
+      a.appendChild(m);
+    }
+
+    var go = document.createElement('div');
+    go.className = 'go';
+    go.textContent = g.soon ? '即将上线' : '进入游戏 →';
+    a.appendChild(go);
+
+    box.appendChild(a);
+  });
+})();
+</script>
+</body>
+</html>
