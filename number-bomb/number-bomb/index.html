@@ -432,6 +432,9 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
       config: { mode: 'digits', digits: 2, value: '' },
       // 游戏结束惩罚（真心话大冒险）——房主可操作，变更即同步给联机玩家
       penalty: { enabled: true, mode: 'date' },
+      penaltySkips: 0,    // 本局炸弹的惩罚已换题次数（真心话+大冒险合计，关了重开也不清零）
+      penaltyDrink: false, // 本局已换满 3 次，须先喝一杯
+      penaltyDone: false,  // 本局惩罚已完成/已认罚，关了不能再重开
       tada: null          // 联机会话：{open, kind, text, cat, drawn, by}
     };
   }
@@ -450,6 +453,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
       winner: h.winner ? { num: h.winner.num, name: h.winner.name, value: h.winner.value } : null,
       hostNum: h.hostNum,
       penalty: { enabled: !!h.penalty.enabled, mode: h.penalty.mode },
+      penaltyDone: !!h.penaltyDone,
       tada: h.tada ? {
         open: !!h.tada.open, kind: h.tada.kind, text: h.tada.text,
         cat: h.tada.cat, drawn: h.tada.drawn, by: h.tada.by,
@@ -541,10 +545,11 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     if (!entry.num) return;
     if (data.t === 'tada') {
       // 真心话大冒险：一律由房主抽题后广播，保证所有玩家看到同一道题
+      // 选真心话/大冒险那一步谁都能点；进去题目后，换题/完成只有被罚的人能点，房主端按发送者编号拦截
       if (data.act === 'open') hostTadaOpen();
       else if (data.act === 'pick') hostTadaPick(data.kind);
-      else if (data.act === 'next') hostTadaNext();
-      else if (data.act === 'close') hostTadaClose();
+      else if (data.act === 'next') hostTadaNext(entry.num);
+      else if (data.act === 'close') hostTadaClose(entry.num);
       return;
     }
     if (data.t === 'guess') {
@@ -627,6 +632,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     h.history = [];
     h.winner = null;
     h.tada = null;              // 新一局：清空上一局的惩罚会话（惩罚开关与模式保留）
+    h.penaltySkips = 0; h.penaltyDrink = false; h.penaltyDone = false; // 新一局炸弹，换题次数重新给 3 次
     S.tadaDeck = null;
     h.phase = 'playing';
     h.turn = firstOnlineNum();
@@ -641,6 +647,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     h.phase = 'lobby';
     h.winner = null;
     h.tada = null;
+    h.penaltySkips = 0; h.penaltyDrink = false; h.penaltyDone = false;
     S.tadaDeck = null;
     h.history = [];
     h.players.forEach(function (p) { p.guesses = []; });
@@ -873,8 +880,8 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     if (w) h += '<p class="over-line"><b>#' + w.num + ' ' + esc(w.name) + '</b> 猜中了炸弹数字 <b class="big">' + w.value + '</b>！</p>';
     h += '<p class="muted">本局共 ' + s.history.length + ' 次猜测</p>';
 
-    if (pen) {
-      // 惩罚开启：猜中信息下方加一行小字 + 三个按钮（接受惩罚 / 跳过惩罚 / 返回大厅）
+    if (pen && !s.penaltyDone) {
+      // 惩罚开启且本局还没完成：接受惩罚 / 跳过惩罚 / 返回大厅
       h += '<p class="penalty-tip">本轮惩罚：真心话大冒险</p>';
       h += '<div class="btn-row" style="margin-top:16px">' +
            '<button class="btn primary" data-action="accept-penalty" style="flex:1 1 100%">接受惩罚</button>' +
@@ -883,6 +890,16 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
            '<button class="btn" data-action="skip-penalty">跳过惩罚</button>' +
            '<button class="btn" data-action="lobby">返回大厅</button>' +
            '</div>';
+    } else if (pen && s.penaltyDone) {
+      h += '<p class="penalty-tip">本轮惩罚已完成</p>';
+      h += '<div class="btn-row">';
+      if (S.role === 'host') {
+        h += '<button class="btn primary" data-action="again">再来一局</button>' +
+             '<button class="btn" data-action="lobby">返回大厅</button>';
+      } else {
+        h += '<button class="btn" data-action="close-modal">知道了</button>';
+      }
+      h += '</div>';
     } else {
       h += '<div class="btn-row">';
       if (S.role === 'host') {
@@ -910,6 +927,16 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
   var TADA_EMPTY = '真心话大冒险题库未加载：请确认 truth-dare.js 与 index.html 在同一目录。';
 
   function tadaReady() { return !!(window.TruthDare && window.TruthDare.Deck); }
+  // 被罚的人编号：tada.by 优先，否则 winner.num；0 表示未知
+  function tadaByNum(s) {
+    if (s && s.tada && s.tada.by) return s.tada.by;
+    if (s && s.winner && s.winner.num) return s.winner.num;
+    return 0;
+  }
+  function isTadaActor(s) {
+    var by = tadaByNum(s);
+    return by ? (S.myNum === by) : true; // 编号未知时不误拦（单机/旧状态兜底）
+  }
   function tadaNewDeck(mode) { return new window.TruthDare.Deck(mode); }
 
   /* 题目卡片（联机层与独立版共用渲染） */
@@ -943,29 +970,34 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
                '<h2>选一个，开始抽题</h2>' +
                '<button class="btn pick-btn dare" data-action="tada-pick" data-v="dare">大冒险</button>' +
                '<button class="btn pick-btn truth" data-action="tada-pick" data-v="truth">真心话</button>' +
-               '<p class="hint" style="text-align:center;margin-top:14px">真心话与大冒险各自独立抽题，「下一题」会在同类型题库里继续抽。</p>' +
+               '<p class="hint" style="text-align:center;margin-top:14px">真心话和大冒险合计最多换 3 次，换满就没有下一题了，先喝一杯。</p>' +
              '</div>';
     } else {
-      var isDare = (t.kind === 'dare');
       var skips = t.skips || 0;
-      var left = isDare ? Math.max(0, 3 - skips) : 99;
-      var foot = '已抽 ' + (t.drawn || 1) + ' 题 · 同类型继续抽不重复' +
-        (isDare ? ' · 大冒险已换 ' + skips + '/3 次' : ' · 真心话换题不限次数');
+      var left = Math.max(0, 3 - skips);
+      var foot = '已抽 ' + (t.drawn || 1) + ' 题 · 同类型继续抽不重复 · 已换 ' + skips + '/3 次';
+      var actor = isTadaActor(s);
+      var byNum = tadaByNum(s);
       body = qCardHtml(t.kind, t.text, t.cat, t.drawn, foot);
-      if (isDare && t.drink) {
+      if (t.drink) {
         body += '<div class="drink-banner"><b>别选了，罚喝一杯！🍺</b>' +
-                '<p>大冒险已经换了 3 次了。这道题要么现在做，要么认罚喝一杯。</p></div>' +
-                '<div class="btn-row">' +
-                  '<button class="btn primary" data-action="tada-done">认罚喝一杯</button>' +
-                  '<button class="btn" data-action="tada-done">做这道题</button>' +
-                '</div>';
-      } else {
+                '<p>已经换了 3 次了，先喝一杯，没有下一题了。这道题要么现在做，要么认罚喝一杯。</p></div>';
+        if (actor) {
+          body += '<div class="btn-row">' +
+                    '<button class="btn primary" data-action="tada-done">认罚喝一杯</button>' +
+                    '<button class="btn" data-action="tada-done">做这道题</button>' +
+                  '</div>';
+        } else {
+        body += '<div class="skip-note">只有被罚的 #' + byNum + ' 能点换一题，你只能看，不能帮她点（还剩 ' + left + ' 次）</div>';
+        }
+      } else if (actor) {
         body += '<div class="btn-row">' +
-                  '<button class="btn primary" data-action="tada-next">' +
-                    (isDare ? '换一题（还剩 ' + left + ' 次）' : '下一题') + '</button>' +
+                  '<button class="btn primary" data-action="tada-next">换一题（还剩 ' + left + ' 次）</button>' +
                   '<button class="btn" data-action="tada-done">完成惩罚</button>' +
                 '</div>' +
-                (isDare ? '<div class="skip-note">不想做可以换，最多换 3 次，第 3 次换完就不能再换了</div>' : '');
+                '<div class="skip-note">真心话和大冒险合计最多换 3 次，第 3 次换完就没有下一题了，先喝一杯</div>';
+      } else {
+        body += '<div class="skip-note">只有被罚的 #' + byNum + ' 能点换一题，你只能看，不能帮她点（还剩 ' + left + ' 次）</div>';
       }
     }
     layer.innerHTML = '<div class="tada-wrap">' + head + body + '</div>';
@@ -1000,7 +1032,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     var so = S.solo;
     if (!so.deck) return;
     so.kind = (kind === 'dare') ? 'dare' : 'truth';
-    so.skips = 0; so.drink = false;
+    // 换种类不重置：真心话+大冒险合计最多换 3 次
     var q = so.deck.draw(so.kind);
     so.text = q.text; so.cat = q.cat || ''; so.drawn = 1;
     renderSolo();
@@ -1010,13 +1042,11 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     if (!so.deck || !so.kind) return;
     if (so.drink) return;
     if (so.kind === 'dare' && so.deck.noteSkipped) so.deck.noteSkipped(so.text);
-    if (so.kind === 'dare') {
-      if ((so.skips || 0) >= 3) { so.drink = true; renderSolo(); return; }
-      so.skips = (so.skips || 0) + 1;
-    }
+    if ((so.skips || 0) >= 3) { so.drink = true; renderSolo(); return; }
+    so.skips = (so.skips || 0) + 1;
     var q = so.deck.draw(so.kind);
     so.text = q.text; so.cat = q.cat || ''; so.drawn++;
-    if (so.kind === 'dare' && (so.skips || 0) >= 3) so.drink = true;
+    if ((so.skips || 0) >= 3) so.drink = true;
     renderSolo();
   }
   function renderSolo() {
@@ -1048,30 +1078,27 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
           '<h2>选一个，开始抽题</h2>' +
           '<button class="btn pick-btn dare" data-action="solo-pick" data-v="dare">大冒险</button>' +
           '<button class="btn pick-btn truth" data-action="solo-pick" data-v="truth">真心话</button>' +
-          '<p class="hint" style="text-align:center;margin-top:14px">真心话与大冒险各自独立抽题，「下一题」会在同类型题库里继续抽。</p>' +
+          '<p class="hint" style="text-align:center;margin-top:14px">真心话和大冒险合计最多换 3 次，换满就没有下一题了，先喝一杯。</p>' +
         '</div>' +
         '</div>';
       return;
     }
-    var isDare = (so.kind === 'dare');
-    var left = isDare ? Math.max(0, 3 - (so.skips || 0)) : 99;
-    var foot = '已抽 ' + so.drawn + ' 题 · 同类型继续抽不重复' +
-      (isDare ? ' · 大冒险已换 ' + (so.skips || 0) + '/3 次' : ' · 真心话换题不限次数');
+    var left = Math.max(0, 3 - (so.skips || 0));
+    var foot = '已抽 ' + so.drawn + ' 题 · 同类型继续抽不重复 · 已换 ' + (so.skips || 0) + '/3 次';
     var btns;
-    if (isDare && so.drink) {
+    if (so.drink) {
       btns = '<div class="drink-banner"><b>别选了，罚喝一杯！🍺</b>' +
-             '<p>大冒险已经换了 3 次了。这道题要么现在做，要么认罚喝一杯。</p></div>' +
+             '<p>已经换了 3 次了，先喝一杯，没有下一题了。这道题要么现在做，要么认罚喝一杯。</p></div>' +
              '<div class="btn-row">' +
                '<button class="btn primary" data-action="solo-exit">认罚喝一杯</button>' +
                '<button class="btn" data-action="solo-exit">做这道题</button>' +
              '</div>';
     } else {
       btns = '<div class="btn-row">' +
-               '<button class="btn primary" data-action="solo-next">' +
-                 (isDare ? '换一题（还剩 ' + left + ' 次）' : '下一题') + '</button>' +
+               '<button class="btn primary" data-action="solo-next">换一题（还剩 ' + left + ' 次）</button>' +
                '<button class="btn" data-action="solo-exit">退出</button>' +
              '</div>' +
-             (isDare ? '<div class="skip-note">不想做可以换，最多换 3 次，第 3 次换完就不能再换了</div>' : '');
+             '<div class="skip-note">真心话和大冒险合计最多换 3 次，第 3 次换完就没有下一题了，先喝一杯</div>';
     }
     box.innerHTML = '<div class="tada-wrap">' +
       qCardHtml(so.kind, so.text, so.cat, so.drawn, foot) + btns +
@@ -1090,14 +1117,17 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
   function hostTadaOpen() {
     var h = S.host;
     if (!h) return;
+    if (h.penaltyDone) { toast('本轮惩罚已完成'); return; }
     if (!tadaReady()) { toast(TADA_EMPTY); return; }
     S.tadaDeck = tadaNewDeck(h.penalty.mode);
-    h.tada = { open: true, kind: null, text: '', cat: '', drawn: 0, by: (h.winner ? h.winner.num : 0), skips: 0, drink: false };
+    // 关了重开也不清零：用本局已累计的换题次数恢复
+    h.tada = { open: true, kind: null, text: '', cat: '', drawn: 0, by: (h.winner ? h.winner.num : 0), skips: h.penaltySkips || 0, drink: !!h.penaltyDrink };
     hostBroadcast();
   }
   function hostTadaPick(kind) {
     var h = S.host;
     if (!h || !h.tada || !h.tada.open) return;
+    if (h.tada.drink) return; // 已换满 3 次锁定罚喝，不再抽新题
     if (!tadaReady()) { toast(TADA_EMPTY); return; }
     if (!S.tadaDeck) S.tadaDeck = tadaNewDeck(h.penalty.mode);
     var k = (kind === 'dare') ? 'dare' : 'truth';
@@ -1108,25 +1138,33 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     h.tada.drawn = (h.tada.drawn || 0) + 1;
     hostBroadcast();
   }
-  function hostTadaNext() {
+  function hostTadaNext(requesterNum) {
     var h = S.host;
     if (!h || !h.tada || !h.tada.open || !h.tada.kind) return;
     if (h.tada.drink) return; // 已锁定罚喝，不再抽题
+    // 权限：只有被罚的人能换题（房主本人不是被罚者时也拦）
+    var by = h.tada.by || (h.winner ? h.winner.num : 0);
+    if (requesterNum && by && requesterNum !== by) return;
     // 当前这道正是牵手题且被换掉：记一次跳过，后面低概率复出（本页面会话内有效）
     if (h.tada.kind === 'dare' && S.tadaDeck && S.tadaDeck.noteSkipped) S.tadaDeck.noteSkipped(h.tada.text);
-    if (h.tada.kind === 'dare') {
-      // 只有大冒险计换题次数：真心话只是回答问题，换题不限
-      if ((h.tada.skips || 0) >= 3) { h.tada.drink = true; hostBroadcast(); return; }
-      h.tada.skips = (h.tada.skips || 0) + 1;
-    }
+    // 真心话和大冒险合计最多换 3 次，不分种类；换种类也不重置
+    if ((h.tada.skips || 0) >= 3) { h.tada.drink = true; h.penaltyDrink = true; hostBroadcast(); return; }
+    h.tada.skips = (h.tada.skips || 0) + 1;
+    h.penaltySkips = h.tada.skips;
     hostTadaPick(h.tada.kind);
-    // 第 3 次换完即锁定：当前这道题就是最后一道，再点换题就罚喝
-    if (h.tada.kind === 'dare' && (h.tada.skips || 0) >= 3) { h.tada.drink = true; hostBroadcast(); }
+    // 第 3 次换完即锁定：当前这道题就是最后一道，再点换题就罚喝，提前没有下一题
+    if ((h.tada.skips || 0) >= 3) { h.tada.drink = true; h.penaltyDrink = true; hostBroadcast(); }
   }
-  function hostTadaClose() {
+  function hostTadaClose(requesterNum) {
     var h = S.host;
     if (!h) return;
+    // 权限：只有被罚的人能点完成/认罚，别人不能帮她关掉
+    if (h.tada) {
+      var by = h.tada.by || (h.winner ? h.winner.num : 0);
+      if (requesterNum && by && requesterNum !== by) return;
+    }
     h.tada = null;
+    h.penaltyDone = true; // 本局惩罚已完成，之后再点接受惩罚也不会重开
     hostBroadcast();
   }
   function clientTada(act, kind) {
@@ -1359,8 +1397,16 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
       if (S.role === 'host') hostTadaPick(el.getAttribute('data-v'));
       else clientTada('pick', el.getAttribute('data-v'));
     }
-    else if (act === 'tada-next') { if (S.role === 'host') hostTadaNext(); else clientTada('next'); }
-    else if (act === 'tada-done') { if (S.role === 'host') hostTadaClose(); else clientTada('close'); }
+    else if (act === 'tada-next') {
+      var st = S.pub || (S.host ? hostPublic() : null);
+      if (st && !isTadaActor(st)) { toast('只有被罚的人能换题'); return; }
+      if (S.role === 'host') hostTadaNext(S.myNum); else clientTada('next');
+    }
+    else if (act === 'tada-done') {
+      var st2 = S.pub || (S.host ? hostPublic() : null);
+      if (st2 && !isTadaActor(st2)) { toast('只有被罚的人能完成惩罚'); return; }
+      if (S.role === 'host') hostTadaClose(S.myNum); else clientTada('close');
+    }
   });
 
   document.addEventListener('input', function (e) {

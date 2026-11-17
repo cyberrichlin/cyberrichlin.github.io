@@ -207,32 +207,29 @@ h2{font-size:16px;margin-bottom:10px}
             '<h2>选一个，开始抽题</h2>' +
             '<button class="btn pick-btn dare" data-action="pick" data-v="dare">大冒险</button>' +
             '<button class="btn pick-btn truth" data-action="pick" data-v="truth">真心话</button>' +
-            '<p class="hint" style="text-align:center;margin-top:14px">真心话与大冒险各自独立抽题，「下一题」会在同类型题库里继续抽。</p>' +
+            '<p class="hint" style="text-align:center;margin-top:14px">真心话和大冒险合计最多换 3 次，换满就没有下一题了，先喝一杯。</p>' +
           '</div>' +
         '</div>';
       return;
     }
 
     var isTruth = (S.kind === 'truth');
-    var isDare = !isTruth;
-    var left = isDare ? Math.max(0, 3 - (S.skips || 0)) : 99;
-    var foot = '已抽 ' + S.drawn + ' 题 · 同类型继续抽不重复' +
-      (isDare ? ' · 大冒险已换 ' + (S.skips || 0) + '/3 次' : ' · 真心话换题不限次数');
+    var left = Math.max(0, 3 - (S.skips || 0));
+    var foot = '已抽 ' + S.drawn + ' 题 · 同类型继续抽不重复 · 已换 ' + (S.skips || 0) + '/3 次';
     var btns;
-    if (isDare && S.drink) {
+    if (S.drink) {
       btns = '<div class="drink-banner"><b>别选了，罚喝一杯！🍺</b>' +
-             '<p>大冒险已经换了 3 次了。这道题要么现在做，要么认罚喝一杯。</p></div>' +
+             '<p>已经换了 3 次了，先喝一杯，没有下一题了。这道题要么现在做，要么认罚喝一杯。</p></div>' +
              '<div class="btn-row">' +
                '<button class="btn primary" data-action="exit">认罚喝一杯</button>' +
                '<button class="btn" data-action="exit">做这道题</button>' +
              '</div>';
     } else {
       btns = '<div class="btn-row">' +
-               '<button class="btn primary" data-action="next">' +
-                 (isDare ? '换一题（还剩 ' + left + ' 次）' : '下一题') + '</button>' +
+               '<button class="btn primary" data-action="next">换一题（还剩 ' + left + ' 次）</button>' +
                '<button class="btn" data-action="exit">退出</button>' +
              '</div>' +
-             (isDare ? '<div class="skip-note">不想做可以换，最多换 3 次，第 3 次换完就不能再换了</div>' : '');
+             '<div class="skip-note">真心话和大冒险合计最多换 3 次，第 3 次换完就没有下一题了，先喝一杯</div>';
     }
     $('play-main').innerHTML =
       '<div class="center-box">' +
@@ -265,7 +262,7 @@ h2{font-size:16px;margin-bottom:10px}
   function pick(kind) {
     if (!S.deck) return;
     S.kind = (kind === 'dare') ? 'dare' : 'truth';
-    S.skips = 0; S.drink = false;
+    // 换种类不重置：真心话+大冒险合计最多换 3 次
     var q = S.deck.draw(S.kind);
     S.text = q.text; S.cat = q.cat || '';
     S.drawn = 1;
@@ -276,14 +273,12 @@ h2{font-size:16px;margin-bottom:10px}
     if (!S.deck || !S.kind) return;
     if (S.drink) return;
     if (S.kind === 'dare' && S.deck.noteSkipped) S.deck.noteSkipped(S.text);
-    if (S.kind === 'dare') {
-      if ((S.skips || 0) >= 3) { S.drink = true; renderPlay(); return; }
-      S.skips = (S.skips || 0) + 1;
-    }
+    if ((S.skips || 0) >= 3) { S.drink = true; renderPlay(); return; }
+    S.skips = (S.skips || 0) + 1;
     var q = S.deck.draw(S.kind);
     S.text = q.text; S.cat = q.cat || '';
     S.drawn++;
-    if (S.kind === 'dare' && (S.skips || 0) >= 3) S.drink = true;
+    if ((S.skips || 0) >= 3) S.drink = true;
     renderPlay();
   }
 
