@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0d16">
+<title>声控飞鸟 · 声音越高飞得越高</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;min-height:100%}
+body{background:#0a0d16;color:#e9edf7;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:460px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+a.back{color:#8b95b2;text-decoration:none;font-size:14px}
+h1{margin:8px 0 4px;font-size:26px}
+.sub{color:#8b95b2;font-size:14px;margin:0 0 14px}
+.card{background:#131a2c;border:1px solid #232b47;border-radius:16px;padding:16px;margin:12px 0}
+.btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;background:#2a3352;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin:8px 0}
+.btn.primary{background:linear-gradient(135deg,#ffb020,#ff5c9d)}
+.btn.ghost{background:#1b2238;border:1px solid #2c3556}
+.btn.small{width:auto;display:inline-block;padding:8px 14px;font-size:14px;margin:4px 4px 0 0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #2c3556;background:#0f1526;color:#fff;font-size:16px}
+label{display:block;color:#9aa4c2;font-size:13px;margin:12px 0 6px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.muted{color:#8b95b2;font-size:13px}
+.hint{color:#9aa4c2;font-size:13.5px;line-height:1.7}
+.pill{display:inline-block;border:1px solid #2c3556;background:#161d31;border-radius:999px;padding:4px 10px;font-size:12px;color:#a9b2cc;margin:2px 4px 2px 0}
+canvas{width:100%;display:block;border-radius:16px;background:linear-gradient(180deg,#1a2a4a,#0e1a33 60%,#12263a);border:1px solid #232b47;touch-action:none}
+.meter{height:14px;border-radius:999px;background:#0f1526;border:1px solid #2c3556;overflow:hidden;margin:8px 0 4px}
+.meter i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#ffb020,#ff5c9d,#7c5cff)}
+.meter-row{display:flex;justify-content:space-between;color:#8b95b2;font-size:12px}
+.score{font-size:15px;font-weight:700}
+.score b{color:#ffb020;font-size:22px}
+.hidden{display:none!important}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1b2238;border:1px solid #33406b;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:9;max-width:92vw;text-align:center}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:8px 4px;border-bottom:1px solid #232b47;text-align:left}
+td:last-child,th:last-child{text-align:right}
+.win{color:#ffb020;font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="../">← 返回游戏合集</a>
+<h1>🐦 声控飞鸟</h1>
+<p class="sub">对着手机哼 / 说话：音调越高，小鸟飞得越高；音调越低，飞得越低。躲开前面的墙，看谁飞得远。</p>
+
+<div id="screen-home" class="card">
+  <label>你的名字</label>
+  <input id="input-name" maxlength="10" placeholder="比如：阿明">
+  <label>玩法</label>
+  <div class="row">
+    <button class="btn primary" data-action="solo">自己先练一局</button>
+    <button class="btn" data-action="create">创建房间 · 2人轮流</button>
+  </div>
+  <label>加入朋友的房间（6 位房号）</label>
+  <div class="row">
+    <input id="input-code" inputmode="numeric" maxlength="6" placeholder="6 位房间号" style="letter-spacing:4px;text-align:center">
+    <button class="btn" data-action="join" style="flex:0 0 96px">加入</button>
+  </div>
+  <p class="hint" id="home-tip"></p>
+  <p class="hint">规则：两人轮流玩，每人飞一局。轮到谁，谁的手机才开麦克风；对方在观战，麦克风是关的，不会干扰。最后比谁飞得远（米数 + 穿过几堵墙）。<br>要先允许麦克风权限。没有麦克风 / 权限被拒时，可以用手指在画面上下拖动代替。</p>
+</div>
+
+<div id="screen-room" class="card hidden">
+  <div>房间号：<b id="room-code" style="letter-spacing:4px;color:#ffb020">------</b>
+    <button class="btn small" data-action="copy-code">复制房号</button>
+    <button class="btn small" data-action="copy-link">复制邀请链接</button>
+  </div>
+  <div id="players" style="margin-top:12px"></div>
+  <p class="hint" id="room-tip">等朋友进来，房主点开始。先玩的是 1 号玩家。</p>
+  <button class="btn primary" data-action="start-match" id="btn-start">开始比赛（房主）</button>
+  <button class="btn ghost" data-action="leave">离开房间</button>
+</div>
+
+<div id="screen-game" class="hidden">
+  <div class="card" style="margin-top:0">
+    <div class="score">当前：<span id="turn-name">—</span>　距离 <b id="score-now">0</b> 米　穿墙 <b id="pipes-now">0</b></div>
+    <div class="muted" id="turn-status">—</div>
+    <canvas id="cv" width="360" height="560"></canvas>
+    <div id="mic-box">
+      <div class="meter"><i id="meter-fill"></i></div>
+      <div class="meter-row"><span>低音 ↓</span><span id="freq-now">— Hz</span><span>高音 ↑</span></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn small" data-action="cal-low">测我的低音</button>
+        <button class="btn small" data-action="cal-high">测我的高音</button>
+      </div>
+      <p class="muted" id="cal-tip">默认低音 130Hz、高音 440Hz。先哼一声低音点“测低音”，再哼一声高音点“测高音”，小鸟会更跟你的声音。</p>
+    </div>
+    <button class="btn primary" data-action="my-start" id="btn-my-start">轮到我了：开麦克风开始飞</button>
+    <button class="btn ghost" data-action="give-up" id="btn-give-up">放弃本轮（按当前距离算）</button>
+    <button class="btn ghost" data-action="back-lobby" id="btn-back-lobby">回大厅</button>
+  </div>
+  <div class="card">
+    <b>成绩</b>
+    <div id="scoreboard"></div>
+  </div>
+</div>
+
+<div id="screen-done" class="card hidden">
+  <h2 style="margin:0">🏆 比赛结束</h2>
+  <div id="result"></div>
+  <button class="btn primary" data-action="again">再比一局（换顺序）</button>
+  <button class="btn ghost" data-action="back-lobby">回大厅</button>
+</div>
+</div>
+<div id="toast" class="hidden"></div>
+<script src="vendor/peerjs.min.js"></script>
+<script>
+if (typeof window.Peer !== 'function') {
+  (function loadPeer(){
+    var urls=['https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
+    var i=0;
+    function next(){ if(i>=urls.length) return; var s=document.createElement('script'); s.src=urls[i++]; s.onload=function(){window.__peerReady=true}; s.onerror=next; document.head.appendChild(s); }
+    next();
+  })();
+}
+</script>
+<script>
+(function(){
+'use strict';
+var W=360,H=560,GROUND=520;
+var $=function(id){return document.getElementById(id)};
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function toast(m){var el=$('toast');if(!el)return;el.textContent=m;el.classList.remove('hidden');setTimeout(function(){el.classList.add('hidden')},2400)}
+function rand6(){var s='';for(var i=0;i<6;i++)s+=Math.floor(Math.random()*10);return s}
+function digitsOnly(v){return String(v==null?'':v).replace(/[^0-9]/g,'')}
+
+/* ---------- 音调 -> 高度（纯函数，可测） ---------- */
+function mapFreqToY(freq,low,high){
+  if(!freq||freq<=0)return GROUND-40;
+  if(freq<=low)return GROUND-40;
+  if(freq>=high)return 50;
+  var t=(Math.log(freq)-Math.log(low))/(Math.log(high)-Math.log(low));
+  return (GROUND-40)-t*((GROUND-40)-50);
+}
+function autoPitch(buf,sampleRate){
+  var SIZE=buf.length,rms=0;
+  for(var i=0;i<SIZE;i++)rms+=buf[i]*buf[i];
+  rms=Math.sqrt(rms/SIZE);
+  if(rms<0.015)return null;
+  var c=new Array(SIZE).fill(0);
+  for(var lag=0;lag<SIZE;lag++){var s=0;for(var j=0;j<SIZE-lag;j++)s+=buf[j]*buf[j+lag];c[lag]=s}
+  var d=0;while(d<SIZE-1&&c[d]>c[d+1])d++;
+  var maxVal=-1,maxLag=-1;
+  var minLag=Math.floor(sampleRate/600),maxLag2=Math.floor(sampleRate/80);
+  for(var l=Math.max(d,minLag);l<=Math.min(maxLag2,SIZE-1);l++){if(c[l]>maxVal){maxVal=c[l];maxLag=l}}
+  if(maxLag<=0)return null;
+  return sampleRate/maxLag;
+}
+
+var S={
+  role:null, peer:null, code:'', myNum:0, myName:'',
+  host:null, pub:null, conns:{}, hostConn:null,
+  cal:{low:130,high:440}, smoothFreq:0, micOn:false, dragMode:false,
+  local:null, playing:false, raf:0, audio:null
+};
+window.__VBDBG={S:S,mapFreqToY:mapFreqToY,autoPitch:autoPitch,runStep:runStep,meters:meters,newRun:newRun};
+
+function newHostState(code){
+  return {code:code,phase:'lobby',players:[],turnNum:0,turnIndex:0,
+    scores:{},live:null,msg:''};
+}
+function hostPublic(){
+  var h=S.host;if(!h)return null;
+  return {code:h.code,phase:h.phase,
+    players:h.players.map(function(p){return{num:p.num,name:p.name,online:p.online}}),
+    turnNum:h.turnNum,turnIndex:h.turnIndex,
+    scores:Object.assign({},h.scores),live:h.live?Object.assign({},h.live,{pipes:h.live.pipes.map(function(p){return{ x:p.x,gapY:p.gapY,passed:p.passed}}) }):null};
+}
+function hostBroadcast(){
+  S.pub=hostPublic();
+  var payload={t:'state',state:S.pub};
+  Object.keys(S.conns).forEach(function(pid){try{var c=S.conns[pid].conn;if(c&&c.open)c.send(payload)}catch(e){}});
+  render();
+}
+function hostSend(conn,obj){try{if(conn&&conn.open)conn.send(obj)}catch(e){}}
+
+/* ---------- 本地一局（只有轮到的人在跑物理） ---------- */
+function newRun(){return {y:280,targetY:280,pipes:[],frame:0,dist:0,passed:0,alive:true,spawn:0}}
+function runStep(run,freq){
+  if(freq&&freq>0){run.targetY=mapFreqToY(freq,S.cal.low,S.cal.high)}
+  else{run.targetY=Math.min(GROUND-40,run.targetY+6)} /* 没声音就慢慢往下掉 */
+  run.y+=(run.targetY-run.y)*0.22;
+  if(run.y<24)run.y=24; if(run.y>GROUND-20)run.y=GROUND-20;
+  run.spawn++;
+  if(run.spawn>=105){run.spawn=0;run.pipes.push({x:W+10,gapY:90+Math.random()*280,passed:false})}
+  for(var i=0;i<run.pipes.length;i++){
+    var p=run.pipes[i];p.x-=2.4;run.dist+=2.4;
+    if(!p.passed&&p.x+62<90-14){p.passed=true;run.passed++}
+    if(90+14>p.x&&90-14<p.x+62){
+      if(run.y-14<p.gapY-80||run.y+14>p.gapY+80){run.alive=false}
+    }
+  }
+  run.pipes=run.pipes.filter(function(p){return p.x>-80});
+  run.frame++;
+  return run;
+}
+function meters(run){return Math.floor(run.dist/25)}
+
+/* ---------- 麦克风：只有轮到的人才开 ---------- */
+function stopMic(){
+  if(S.audio){
+    try{if(S.audio.stream){S.audio.stream.getTracks().forEach(function(t){t.stop()})} }catch(e){}
+    try{if(S.audio.ctx)S.audio.ctx.close()}catch(e){}
+    S.audio=null;
+  }
+  S.micOn=false;
+}
+function startMic(onFreq){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('这台设备不支持麦克风，改用手指拖动');S.dragMode=true;return Promise.resolve(false)}
+  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})
+    .then(function(stream){
+      var ctx=new (window.AudioContext||window.webkitAudioContext)();
+      if(ctx.resume)ctx.resume();
+      var src=ctx.createMediaStreamSource(stream);
+      var an=ctx.createAnalyser();an.fftSize=2048;src.connect(an);
+      var buf=new Float32Array(an.fftSize);
+      S.audio={ctx:ctx,stream:stream,an:an,buf:buf};
+      S.micOn=true;S.dragMode=false;
+      (function loop(){
+        if(!S.micOn||!S.audio)return;
+        an.getFloatTimeDomainData(buf);
+        var f=autoPitch(buf,ctx.sampleRate);
+        if(f){S.smoothFreq=S.smoothFreq?S.smoothFreq*0.6+f*0.4:f;onFreq(S.smoothFreq)}
+        else onFreq(0);
+        requestAnimationFrame(loop);
+      })();
+      return true;
+    })
+    .catch(function(){toast('麦克风被拒了，改用手指在画面上下拖动');S.dragMode=true;return false});
+}
+
+/* ---------- 渲染 ---------- */
+function draw(live,activeName){
+  var cv=$('cv');if(!cv)return;var ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#7ec850';ctx.fillRect(0,GROUND,W,H-GROUND);
+  ctx.fillStyle='#5da83a';ctx.fillRect(0,GROUND,W,6);
+  if(live&&live.pipes){
+    live.pipes.forEach(function(p){
+      ctx.fillStyle='#2fae5f';
+      ctx.fillRect(p.x,0,62,p.gapY-80);
+      ctx.fillRect(p.x,p.gapY+80,62,GROUND-(p.gapY+80));
+      ctx.fillStyle='#7ee2a0';ctx.fillRect(p.x,p.gapY-88,62,8);ctx.fillRect(p.x,p.gapY+80,62,8);
+    });
+  }
+  var y=live?live.y:280;
+  ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(90,y,14,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff8a3d';ctx.beginPath();ctx.moveTo(102,y-2);ctx.lineTo(114,y+3);ctx.lineTo(102,y+8);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#222';ctx.beginPath();ctx.arc(95,y-4,2.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='bold 15px sans-serif';ctx.fillText(activeName||'',12,24);
+}
+function render(){
+  var s=S.pub;if(!s)return;
+  $('screen-home').classList.add('hidden');
+  if(s.phase==='lobby'){
+    $('screen-room').classList.remove('hidden');$('screen-game').classList.add('hidden');$('screen-done').classList.add('hidden');
+    $('room-code').textContent=s.code||'------';
+    $('players').innerHTML=s.players.map(function(p){
+      return '<div><span class="pill">#'+p.num+' '+esc(p.name)+(p.num===S.myNum?'（我）':'')+'</span> '+(s.scores[p.num]!=null?'已飞 '+s.scores[p.num]+' 米':'未飞')+'</div>';
+    }).join('')||'<p class="muted">等朋友进来…</p>';
+    $('btn-start').style.display=(S.role==='host')?'':'none';
+  }else if(s.phase==='playing'){
+    $('screen-room').classList.add('hidden');$('screen-game').classList.remove('hidden');$('screen-done').classList.add('hidden');
+    var me=s.players.filter(function(p){return p.num===s.turnNum})[0];
+    var myTurn=(s.turnNum===S.myNum)||(S.role==='solo');
+    $('turn-name').textContent=me?('#'+me.num+' '+me.name):'—';
+    $('score-now').textContent=s.live?Math.floor(s.live.dist/25):0;
+    $('pipes-now').textContent=s.live?s.live.passed:0;
+    $('turn-status').textContent=myTurn?'轮到你了：点下面“开麦克风开始飞”，哼高音往上、哼低音往下，没声音会往下掉。':'对方正在玩，你在观战：你的麦克风没开，不会干扰对方。';
+    $('btn-my-start').style.display=myTurn?'':'none';
+    $('btn-give-up').style.display=(myTurn&&S.playing)?'':'none';
+    $('mic-box').style.display=myTurn?'':'none';
+    $('scoreboard').innerHTML=scoreHtml(s);
+    if(!S.playing)draw(s.live,me?me.name:'');
+  }else if(s.phase==='done'){
+    $('screen-room').classList.add('hidden');$('screen-game').classList.add('hidden');$('screen-done').classList.remove('hidden');
+    var rows=s.players.map(function(p){return {p:p,sc:s.scores[p.num]||0}}).sort(function(a,b){return b.sc-a.sc});
+    $('result').innerHTML='<table>'+rows.map(function(r,i){
+      return '<tr><td>'+(i===0?'🏆 ':'')+'#'+r.p.num+' '+esc(r.p.name)+'</td><td class="'+(i===0?'win':'')+'">'+r.sc+' 米</td></tr>';
+    }).join('')+'</table><p class="hint">赢的人是飞得最远的那个。</p>';
+  }
+  if(S.role==='solo'&&s.phase==='lobby'){/* solo 直接进游戏画面 */}
+}
+function scoreHtml(s){
+  return s.players.map(function(p){
+    return '<div>#'+p.num+' '+esc(p.name)+'：<b>'+(s.scores[p.num]!=null?s.scores[p.num]+' 米':'还没飞')+'</b>'+(p.num===s.turnNum&&s.phase==='playing'?' ← 正在飞':'')+'</div>';
+  }).join('');
+}
+
+/* ---------- 房主逻辑 ---------- */
+function hostRecordCrash(num,score){
+  var h=S.host;if(!h)return;
+  h.scores[num]=score;
+  var order=h.players.map(function(p){return p.num});
+  var idx=order.indexOf(num);
+  var next=null;
+  for(var k=1;k<=order.length;k++){var n=order[(idx+k)%order.length];if(h.scores[n]==null){next=n;break}}
+  if(next==null){h.phase='done';h.live=null;hostBroadcast();return}
+  h.turnNum=next;h.turnIndex=order.indexOf(next);h.live=null;hostBroadcast();
+  toast('轮到 #'+next+' 了');
+}
+function hostStartMatch(){
+  var h=S.host;if(!h||!h.players.length)return;
+  h.scores={};h.turnIndex=0;h.turnNum=h.players[0].num;h.phase='playing';h.live={y:280,pipes:[],dist:0,passed:0,alive:true};
+  hostBroadcast();
+}
+function hostOnData(conn,data){
+  var h=S.host;if(!h||!data||typeof data!=='object')return;
+  var entry=S.conns[conn.peer];if(!entry)return;
+  if(data.t==='join'){
+    var n=1;var used={};h.players.forEach(function(p){used[p.num]=1});while(used[n])n++;
+    entry.num=n;h.players.push({num:n,name:String(data.name||'玩家').slice(0,10),online:true});
+    hostSend(conn,{t:'welcome',num:n,code:h.code});hostBroadcast();return;
+  }
+  if(!entry.num)return;
+  if(data.t==='frame'&&entry.num===h.turnNum){h.live=data.live;hostBroadcast();return}
+  if(data.t==='crash'&&entry.num===h.turnNum){stopMicIfHost();hostRecordCrash(entry.num,data.score);return}
+  if(data.t==='quit'){hostRecordCrash(entry.num,data.score||0);return}
+}
+function stopMicIfHost(){/* 房主自己在飞时，crash 由本地处理，不走这里 */}
+function hostOnLeave(conn){
+  var entry=S.conns[conn.peer];if(!entry)return;
+  if(entry.num&&S.host){S.host.players.forEach(function(p){if(p.num===entry.num)p.online=false})}
+  delete S.conns[conn.peer];if(S.host)hostBroadcast();
+}
+
+/* ---------- 轮到我：开始 / 撞墙 ---------- */
+function myStart(){
+  if(S.playing)return;
+  var active=(S.role==='solo')||(S.pub&&S.pub.turnNum===S.myNum);
+  if(!active){toast('还没轮到你');return}
+  S.local=newRun();S.playing=true;S.smoothFreq=0;
+  $('btn-my-start').style.display='none';$('btn-give-up').style.display='';
+  var freq=0;
+  startMic(function(f){freq=f});
+  var lastSend=0;
+  function tick(){
+    if(!S.playing)return;
+    runStep(S.local,freq);
+    var live={y:S.local.y,pipes:S.local.pipes.map(function(p){return{x:p.x,gapY:p.gapY,passed:p.passed}}),dist:S.local.dist,passed:S.local.passed,alive:S.local.alive};
+    draw(live,S.myName);
+    $('score-now').textContent=meters(S.local);$('pipes-now').textContent=S.local.passed;
+    $('freq-now').textContent=freq?Math.round(freq)+' Hz':'— Hz';
+    $('meter-fill').style.width=freq?Math.max(0,Math.min(100,(Math.log(freq)-Math.log(60))/(Math.log(600)-Math.log(60))*100))+'%':'0%';
+    var now=Date.now();
+    if(S.role==='host'&&S.host){S.host.live=live;if(now-lastSend>90){lastSend=now;hostBroadcast()}}
+    else if(S.role==='client'&&S.hostConn&&S.hostConn.open){if(now-lastSend>90){lastSend=now;try{S.hostConn.send({t:'frame',live:live})}catch(e){}}}
+    else if(S.role==='solo'){S.pub={phase:'playing',players:[{num:1,name:S.myName,online:true}],turnNum:1,turnIndex:0,scores:{},live:live,code:''};$('score-now').textContent=meters(S.local)}
+    if(!S.local.alive){myCrash();return}
+    S.raf=requestAnimationFrame(tick);
+  }
+  S.raf=requestAnimationFrame(tick);
+}
+function myCrash(){
+  if(!S.playing)return;S.playing=false;cancelAnimationFrame(S.raf);stopMic();
+  var score=S.local?meters(S.local):0;
+  toast('撞墙了！飞了 '+score+' 米');
+  if(S.role==='solo'){
+    S.pub={phase:'done',players:[{num:1,name:S.myName,online:true}],turnNum:1,turnIndex:0,scores:{1:score},live:null,code:''};
+    render();return;
+  }
+  if(S.role==='host'&&S.host){hostRecordCrash(S.myNum,score);return}
+  if(S.role==='client'&&S.hostConn&&S.hostConn.open){try{S.hostConn.send({t:'crash',score:score})}catch(e){}}
+}
+function myGiveUp(){
+  if(!S.playing)return;S.playing=false;cancelAnimationFrame(S.raf);stopMic();
+  var score=S.local?meters(S.local):0;
+  if(S.role==='solo'){S.pub={phase:'done',players:[{num:1,name:S.myName,online:true}],turnNum:1,turnIndex:0,scores:{1:score},live:null,code:''};render();return}
+  if(S.role==='host'&&S.host){hostRecordCrash(S.myNum,score);return}
+  if(S.role==='client'&&S.hostConn&&S.hostConn.open){try{S.hostConn.send({t:'quit',score:score})}catch(e){}}
+}
+
+/* ---------- 联机：建房 / 加入 ---------- */
+function myName(){
+  var v=($('input-name').value||'').trim();
+  if(!v)v='玩家'+Math.floor(Math.random()*90+10);
+  S.myName=v;return v;
+}
+function doCreate(){
+  if(typeof window.Peer!=='function'){toast('PeerJS 还没加载好，稍等一下');return}
+  myName();
+  var code=rand6();
+  var p=new Peer('vb-'+code,{debug:0});
+  S.peer=p;S.role='host';S.code=code;S.myNum=1;
+  p.on('open',function(){
+    S.host=newHostState(code);S.host.players.push({num:1,name:S.myName,online:true});
+    p.on('connection',function(conn){
+      S.conns[conn.peer]={conn:conn,num:0};
+      conn.on('data',function(d){try{hostOnData(conn,d)}catch(e){console.error(e)}});
+      conn.on('close',function(){hostOnLeave(conn)});
+    });
+    S.pub=hostPublic();showRoom();
+  });
+  p.on('error',function(err){toast('建房失败：'+(err&&err.type?err.type:'网络问题'))});
+}
+function doJoin(){
+  if(typeof window.Peer!=='function'){toast('PeerJS 还没加载好，稍等一下');return}
+  var code=digitsOnly($('input-code').value);
+  if(code.length!==6){toast('请输入 6 位房间号');return}
+  myName();
+  var p=new Peer(null,{debug:0});
+  S.peer=p;S.role='client';S.code=code;
+  p.on('open',function(){
+    var conn=p.connect('vb-'+code,{reliable:true,serialization:'json'});
+    S.hostConn=conn;
+    conn.on('open',function(){conn.send({t:'join',name:S.myName})});
+    conn.on('data',function(d){
+      if(d.t==='welcome'){S.myNum=d.num;S.code=d.code||code}
+      if(d.t==='state'){S.pub=d.state;render()}
+    });
+    conn.on('error',function(){toast('连接失败：房号不对或房主已离开')});
+  });
+  p.on('error',function(err){if(err&&err.type==='peer-unavailable')toast('找不到这个房间，检查房号')});
+}
+function showRoom(){
+  $('screen-home').classList.add('hidden');$('screen-room').classList.remove('hidden');
+  $('screen-game').classList.add('hidden');$('screen-done').classList.add('hidden');
+  render();
+}
+function doSolo(){
+  myName();S.role='solo';S.myNum=1;S.code='';
+  S.pub={phase:'playing',players:[{num:1,name:S.myName,online:true}],turnNum:1,turnIndex:0,scores:{},live:{y:280,pipes:[],dist:0,passed:0,alive:true},code:''};
+  $('screen-home').classList.add('hidden');$('screen-game').classList.remove('hidden');
+  render();
+  toast('自己练：点“开麦克风开始飞”');
+}
+function leave(){
+  stopMic();S.playing=false;cancelAnimationFrame(S.raf);
+  try{if(S.hostConn)S.hostConn.close()}catch(e){}
+  try{if(S.peer)S.peer.destroy()}catch(e){}
+  S.peer=null;S.hostConn=null;S.conns={};S.host=null;S.pub=null;S.role=null;S.myNum=0;S.code='';
+  $('screen-home').classList.remove('hidden');$('screen-room').classList.add('hidden');
+  $('screen-game').classList.add('hidden');$('screen-done').classList.add('hidden');
+}
+function copyText(t,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast(msg)}).catch(function(){toast(t)})}
+  else toast(t);
+}
+
+/* ---------- 事件 ---------- */
+document.addEventListener('click',function(e){
+  var el=e.target.closest('[data-action]');if(!el)return;
+  var act=el.getAttribute('data-action');
+  if(act==='solo')doSolo();
+  else if(act==='create')doCreate();
+  else if(act==='join')doJoin();
+  else if(act==='leave')leave();
+  else if(act==='copy-code')copyText(S.code,'房号已复制');
+  else if(act==='copy-link')copyText(location.href.split('?')[0]+'?room='+S.code,'邀请链接已复制');
+  else if(act==='start-match'){if(S.role==='host')hostStartMatch();else toast('只有房主能开始')}
+  else if(act==='my-start')myStart();
+  else if(act==='give-up')myGiveUp();
+  else if(act==='back-lobby'){stopMic();S.playing=false;cancelAnimationFrame(S.raf);if(S.role==='solo'){leave()}else{showRoom()}}
+  else if(act==='again'){if(S.role==='host'){var ps=S.host.players.slice().reverse();S.host.players=ps;hostStartMatch()}else toast('等房主再开一局')}
+  else if(act==='cal-low'){if(S.smoothFreq){S.cal.low=Math.round(S.smoothFreq);$('cal-tip').textContent='低音已记为 '+S.cal.low+'Hz。'}else toast('先哼一声低音，再点')}
+  else if(act==='cal-high'){if(S.smoothFreq){S.cal.high=Math.round(S.smoothFreq);$('cal-tip').textContent='高音已记为 '+S.cal.high+'Hz。'}else toast('先哼一声高音，再点')}
+});
+/* 手指拖动备用：只有轮到我且在飞时才生效 */
+(function(){
+  var cv=$('cv');if(!cv)return;
+  function setY(ev){
+    if(!S.playing||!S.local)return;
+    var r=cv.getBoundingClientRect();
+    var y=(ev.clientY-r.top)/r.height*H;
+    S.local.targetY=Math.max(30,Math.min(GROUND-40,y));
+    S.dragMode=true;
+  }
+  cv.addEventListener('pointerdown',function(ev){setY(ev)});
+  cv.addEventListener('pointermove',function(ev){if(ev.buttons)setY(ev)});
+})();
+/* 邀请链接自动填房号 */
+(function(){
+  var m=(location.search||'').match(/room=(\d{6})/);
+  if(m){var i=$('input-code');if(i)i.value=m[1]}
+  if(typeof window.Peer==='function')return;
+  var t=setInterval(function(){if(typeof window.Peer==='function'){clearInterval(t)}},500);
+})();
+})();
+</script>
+</body>
+</html>

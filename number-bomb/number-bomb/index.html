@@ -887,7 +887,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
            '<button class="btn primary" data-action="accept-penalty" style="flex:1 1 100%">接受惩罚</button>' +
            '</div>';
       h += '<div class="btn-row">' +
-           '<button class="btn" data-action="skip-penalty">跳过惩罚</button>' +
+           '<button class="btn" data-action="skip-penalty">跳过惩罚，先喝一杯</button>' +
            '<button class="btn" data-action="lobby">返回大厅</button>' +
            '</div>';
     } else if (pen && s.penaltyDone) {
@@ -1155,6 +1155,20 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     // 第 3 次换完即锁定：当前这道题就是最后一道，再点换题就罚喝，提前没有下一题
     if ((h.tada.skips || 0) >= 3) { h.tada.drink = true; h.penaltyDrink = true; hostBroadcast(); }
   }
+  /* v2.3：跳过惩罚不再直接开新局（旧逻辑调 hostStart 会把换题次数清零重给 3 次，
+     等于绕过“换满 3 次先喝一杯”）。现在跳过=先喝一杯：记 penaltyDone，不开新局，
+     换题次数不清零；想再玩由房主另点“再来一局”，那时才是新一局、重新给 3 次。 */
+  function hostSkipPenalty() {
+    var h = S.host;
+    if (!h) return;
+    if (h.penaltyDone) return; // 本局惩罚已完成，不再重复记
+    h.tada = null;
+    h.penaltyDone = true; // 跳过也算本局惩罚已处理，惩罚层不再重开
+    h.penaltyDrink = true; // 跳过先喝一杯
+    closeModal();
+    hostBroadcast();
+    toast('已记一杯，点“再来一局”开新局');
+  }
   function hostTadaClose(requesterNum) {
     var h = S.host;
     if (!h) return;
@@ -1392,7 +1406,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     else if (act === 'penalty-mode') { if (S.host) hostPenaltySet({ mode: el.getAttribute('data-v') }); }
     /* --- 页内真心话大冒险层（联机） --- */
     else if (act === 'accept-penalty') { if (S.role === 'host') hostTadaOpen(); else clientTada('open'); }
-    else if (act === 'skip-penalty') { if (S.role === 'host') hostStart(); else closeModal(); }
+    else if (act === 'skip-penalty') { if (S.role === 'host') hostSkipPenalty(); else toast('跳过要房主记一杯'); }
     else if (act === 'tada-pick') {
       if (S.role === 'host') hostTadaPick(el.getAttribute('data-v'));
       else clientTada('pick', el.getAttribute('data-v'));
