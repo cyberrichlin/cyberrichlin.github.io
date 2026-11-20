@@ -836,7 +836,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
              '</div>';
         h += '<p class="hint">男女朋友版：大冒险池子温和，适合刚接触 / 暧昧期；情侣升级版：更亲密刺激，适合稳定情侣。两版真心话共用同一题库。设置会同步给所有联机玩家。</p>';
       } else {
-        h += '<p class="hint">大转盘32格，转到什么做什么，不想做就喝半杯。</p>';
+        h += '<p class="hint">大转盘50格，转到什么做什么，不想做就喝半杯。</p>';
       }
     } else {
       h += '<p class="hint">已关闭。打开后设置会同步给所有联机玩家，游戏结束时出现「接受惩罚」入口。</p>';
@@ -990,7 +990,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
 
   /* =================================================================
      大转盘（融合版）
-     · 32 格原样取自 couple-wheel v4（前 12 条是原来转盘的，后 20 条取自
+     · 50 格：前 31 条沿用 32 格版（去掉「你一口我一口」），后 19 条取自
        男女朋友版大冒险 DARE_DATE）；标题/做法/秒数 s 不变，不用升级版
      · 房主抽签 + 广播角度，两端看到同一格；客户端只按广播渲染，不自己随机
      · 居中页只留转盘 + 下面一排按钮 + 一行结果（标题+做法），无其他文字
@@ -1024,10 +1024,28 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     {t:"轻点鼻尖",d:"用指尖轻点对方鼻尖，说「小笨蛋」。",s:0},
     {t:"喂一颗零食",d:"喂对方吃一颗你手里的零食/葡萄。",s:0},
     {t:"同吸管喝一口",d:"用你的吸管，让对方喝一口你的饮料，保持5秒。",s:0},
-    {t:"你一口我一口",d:"玩「你一口我一口」，喝同一杯奶茶。",s:0},
     {t:"听心跳5秒",d:"让对方听你心跳，耳朵贴你胸口5秒。",s:0},
     {t:"手拉手闭眼",d:"两人手拉手，闭眼10秒，感受对方。",s:10},
-    {t:"手背轻亲一下",d:"轻在对方手背上亲一下，说「谢谢配合」。",s:0}
+    {t:"手背轻亲一下",d:"轻在对方手背上亲一下，说「谢谢配合」。",s:0},
+    {t:"靠肩30秒",d:"把头靠在对方肩膀上，保持30秒，不许躲。",s:30},
+    {t:"靠肩说情话",d:"让对方靠在你肩上，你轻轻说一句情话。",s:0},
+    {t:"肩膀接头",d:"让对方靠过来，你用肩膀接住他/她的头，保持10秒。",s:10},
+    {t:"背后轻抱",d:"从背后轻抱对方，双手搭在腰前数5秒。",s:5},
+    {t:"搂腰耳语",d:"轻搂对方腰，在耳边说「你好瘦/好有料」，保持5秒。",s:5},
+    {t:"侧面搂腰",d:"轻从侧面搂对方腰，问一句「能搂吗」。",s:0},
+    {t:"手臂圈腰",d:"用手臂轻圈对方腰，问「你腰真细/真结实」，保持5秒。",s:5},
+    {t:"轻碰耳垂",d:"轻碰一下对方耳垂，碰一下就收回，保持5秒。",s:5},
+    {t:"脖边呼气",d:"把脸凑近对方脖子旁边，呼一口气（不碰到），保持5秒。",s:5},
+    {t:"揉揉后颈",d:"轻轻揉一下对方后颈，保持5秒。",s:5},
+    {t:"腿放腿上",d:"让对方把一只脚的大腿放在自己腿上，保持1分钟。",s:60},
+    {t:"对方抱你",d:"让对方抱你一下，你数对方抱了几秒。",s:0},
+    {t:"面对面抱",d:"两人面对面轻抱一下，不超5秒，看谁先松手。",s:5},
+    {t:"披衣搂一下",d:"把外套披在对方肩上，顺手搂一下，保持5秒。",s:5},
+    {t:"埋肩搂腰",d:"轻搂对方腰，把头埋在他/她肩膀上，保持5秒。",s:5},
+    {t:"尝一口碗里",d:"让对方尝一口你碗里的东西，用同一双筷子/勺子。",s:0},
+    {t:"喂一颗糖",d:"让对方张开嘴，你喂一颗糖进去。",s:0},
+    {t:"交杯酒",d:"两人手臂交缠，各喝一口自己的酒，眼睛看着对方。",s:0},
+    {t:"一起深呼吸",d:"两人一起做3次深呼吸，看谁先笑。",s:0}
   ];
   var WHEEL_COLORS = ["#ff8a3d","#ff5c9d","#7c5cff","#ff3d6e","#ffb03d","#5cb8ff","#4ade80","#f472b6","#ff7a59","#a78bfa","#34d399","#fbbf24","#fb7185","#38bdf8","#a3e635","#f472b6"];
   function drawWheelCanvas(cv) {
@@ -1120,7 +1138,8 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
         else { resEl.className = 'wheel-result wheel-result-empty'; resEl.innerHTML = ''; }
       }
       var btns = layer.querySelectorAll('.wheel-btns .btn');
-      if (btns[0]) btns[0].disabled = (!actor || spun);
+      // 转一下平时可点、转完变黑底（和另外两个一样），再按由点击事件弹字提示，不用 disabled 拦
+      if (btns[0]) { btns[0].className = (!spun && actor) ? 'btn primary' : 'btn'; btns[0].disabled = false; }
       if (btns[1]) btns[1].disabled = (!actor || !spun || !done);
       if (btns[2]) btns[2].disabled = (!actor || !spun || !done);
       return;
@@ -1128,14 +1147,14 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     var resultHtml = (spun && done && t.text)
       ? '<div class="wheel-result"><b>' + esc(t.text) + '</b>：' + esc(detail) + '</div>'
       : '<div class="wheel-result wheel-result-empty"></div>';
-    var spinDis = (!actor || spun) ? ' disabled' : '';
+    var spinCls = (!spun && actor) ? 'btn primary' : 'btn';
     var endDis = (!actor || !spun || !done) ? ' disabled' : '';
     layer.innerHTML = '<div class="wheel-wrap">' +
       '<div class="wheel-box"><div class="wheel-pointer"></div>' +
       '<canvas id="wheelCanvas" class="wheel-canvas" width="640" height="640"></canvas></div>' +
       resultHtml +
       '<div class="wheel-btns">' +
-      '<button class="btn primary" data-action="wheel-spin"' + spinDis + '>🎡 转一下</button>' +
+      '<button class="' + spinCls + '" data-action="wheel-spin">🎡 转一下</button>' +
       '<button class="btn" data-action="wheel-drink"' + endDis + '>🍺 不做，喝半杯</button>' +
       '<button class="btn" data-action="wheel-done"' + endDis + '>✅ 做完了</button>' +
       '</div></div>';
@@ -1689,6 +1708,7 @@ label.field>span{display:block;font-size:13px;color:#8b95b2;margin-bottom:6px}
     else if (act === 'wheel-spin') {
       var ws = S.pub || (S.host ? hostPublic() : null);
       if (ws && !isTadaActor(ws)) { toast('只有被罚的人能转'); return; }
+      if (ws && ws.tada && ws.tada.wheelTarget != null && ws.tada.wheelTarget >= 0) { toast('请先接收惩罚'); return; }
       if (S.role === 'host') hostWheelSpin(S.myNum); else clientTada('wheel-spin');
     }
     else if (act === 'wheel-drink') {

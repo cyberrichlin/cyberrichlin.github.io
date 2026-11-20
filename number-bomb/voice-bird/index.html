@@ -84,7 +84,7 @@ td:last-child,th:last-child{text-align:right}
       <button class="btn small diff-btn" data-action="diff" data-diff="high">高 · 1.3倍</button>
       <button class="btn small diff-btn" data-action="diff" data-diff="super">超高 · 1.8倍</button>
     </div>
-    <button class="btn primary big-start" data-action="solo">▶ 开始游戏（自己玩）</button>
+    <button class="btn big-start" data-action="solo">▶ 开始游戏（自己玩）</button>
     <button class="btn" data-action="create">创建房间 · 和朋友轮流玩</button>
     <label>加入朋友的房间（3 位房号）</label>
     <div class="row">
@@ -200,7 +200,7 @@ function hostPublic(){
   return {code:h.code,phase:h.phase,
     players:h.players.map(function(p){return{num:p.num,name:p.name,online:p.online}}),
     turnNum:h.turnNum,turnIndex:h.turnIndex,diff:h.diff||'mid',
-    scores:Object.assign({},h.scores),live:h.live?Object.assign({},h.live,{pipes:h.live.pipes.map(function(p){return{ x:p.x,gapY:p.gapY,passed:p.passed}}) }):null};
+    scores:Object.assign({},h.scores),live:h.live?Object.assign({},h.live,{pipes:h.live.pipes.map(function(p){return{ x:p.x,side:p.side,h:p.h,passed:p.passed}}) }):null};
 }
 function hostBroadcast(){
   S.pub=hostPublic();
@@ -209,7 +209,7 @@ function hostBroadcast(){
   render();
 }
 function hostSend(conn,obj){try{if(conn&&conn.open)conn.send(obj)}catch(e){}}
-function newRun(){return {y:280,targetY:280,pipes:[],frame:0,dist:0,passed:0,alive:true,spawn:0,crash:null}}
+function newRun(){return {y:280,targetY:280,pipes:[],frame:0,dist:0,passed:0,alive:true,spawn:0,since:0,nextGap:260,crash:null}}
 function runStep(run,freq,mult){
   mult=mult||1;
   if(freq&&freq>0){run.targetY=mapFreqToY(freq,S.cal.low,S.cal.high)}
@@ -217,12 +217,14 @@ function runStep(run,freq,mult){
   run.y+=(run.targetY-run.y)*0.22;
   if(run.y<24)run.y=24; if(run.y>GROUND-20)run.y=GROUND-20;
   run.spawn++;
-  if(run.spawn>=Math.round(130/mult)){run.spawn=0;run.pipes.push({x:W+10,gapY:100+Math.random()*260,passed:false})}
+  run.since+=2.0*mult;
+  if(run.since>=run.nextGap){run.since=0;var sd=Math.random()<0.5?'top':'bottom';var hh=80+Math.random()*232;run.pipes.push({x:W+10,side:sd,h:hh,passed:false});run.nextGap=300+Math.random()*150}
   for(var i=0;i<run.pipes.length;i++){
     var p=run.pipes[i];p.x-=2.0*mult;run.dist+=2.0*mult;
     if(!p.passed&&p.x+62<90-16){p.passed=true;run.passed++}
     if(128>p.x&&90-16<p.x+62){
-      if(run.y-16<p.gapY-90||run.y+16>p.gapY+90){if(!run.crash)run.crash={t:0,y:run.y,poopY:null,poopVy:0,slideY:null,done:false,pipeX:p.x};run.alive=false}
+      var hit=(p.side==='top')?(run.y-16<p.h):(run.y+16>GROUND-p.h);
+      if(hit){if(!run.crash)run.crash={t:0,y:run.y,poopY:null,poopVy:0,slideY:null,done:false,pipeX:p.x};run.alive=false}
     }
   }
   run.pipes=run.pipes.filter(function(p){return p.x>-80});
@@ -306,10 +308,11 @@ function draw(live,activeName){
   if(live&&live.pipes){
     live.pipes.forEach(function(p){
       ctx.fillStyle='#2fae5f';
-      ctx.fillRect(p.x,0,62,p.gapY-90);
-      ctx.fillRect(p.x,p.gapY+90,62,GROUND-(p.gapY+90));
-      ctx.fillStyle='#1d8a46';ctx.fillRect(p.x,p.gapY-98,62,10);ctx.fillRect(p.x,p.gapY+90,62,10);
-      ctx.fillStyle='#7ee2a0';ctx.fillRect(p.x+4,p.gapY-98,6,10);
+      if(p.side==='top'){ctx.fillRect(p.x,0,62,p.h)}
+      else{ctx.fillRect(p.x,GROUND-p.h,62,p.h)}
+      var lipY=(p.side==='top')?p.h-10:GROUND-p.h;
+      ctx.fillStyle='#1d8a46';ctx.fillRect(p.x,lipY,62,10);
+      ctx.fillStyle='#7ee2a0';ctx.fillRect(p.x+4,lipY,6,10);
     });
   }
   var y=live?live.y:280;
@@ -489,7 +492,7 @@ function myStart(){
     var mult=S.role==='solo'?DIFFS[S.diff].mult:(S.pub&&S.pub.diff&&DIFFS[S.pub.diff]?DIFFS[S.pub.diff].mult:1);
     if(S.local.crash){crashStep(S.local)}
     else{runStep(S.local,freq,mult)}
-    var live={y:S.local.y,pipes:S.local.pipes.map(function(p){return{x:p.x,gapY:p.gapY,passed:p.passed}}),dist:S.local.dist,passed:S.local.passed,alive:S.local.alive,crash:S.local.crash?{t:S.local.crash.t,poopY:S.local.crash.poopY,slideY:S.local.crash.slideY,pipeX:S.local.crash.pipeX}:null};
+    var live={y:S.local.y,pipes:S.local.pipes.map(function(p){return{x:p.x,side:p.side,h:p.h,passed:p.passed}}),dist:S.local.dist,passed:S.local.passed,alive:S.local.alive,crash:S.local.crash?{t:S.local.crash.t,poopY:S.local.crash.poopY,slideY:S.local.crash.slideY,pipeX:S.local.crash.pipeX}:null};
     draw(live,S.myName);
     $('score-now').textContent=meters(S.local);$('pipes-now').textContent=S.local.passed;
     $('freq-now').textContent=freq?Math.round(freq)+' Hz':'— Hz';
