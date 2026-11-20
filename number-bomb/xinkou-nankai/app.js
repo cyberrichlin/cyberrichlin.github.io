@@ -249,8 +249,8 @@
     const roomInput = el('input');
     roomInput.id = 'in-room';
     roomInput.inputMode = 'numeric';
-    roomInput.maxLength = 6;
-    roomInput.placeholder = '输入 6 位房号';
+    roomInput.maxLength = 3;
+    roomInput.placeholder = '输入 3 位房号';
     const urlRoom = new URLSearchParams(location.search).get('room');
     if (urlRoom) roomInput.value = urlRoom;
 
@@ -258,7 +258,7 @@
     const doJoin = async () => {
       const roomId = roomInput.value.trim();
       const name = nameInput.value.trim();
-      if (!/^\d{6}$/.test(roomId)) return toast('房号应为 6 位数字');
+      if (!/^\d{3}$/.test(roomId)) return toast('房号应为 3 位数字');
       if (!name) return toast('请先输入昵称');
       btnJoin.disabled = true;
       btnJoin.textContent = '正在连接…';
