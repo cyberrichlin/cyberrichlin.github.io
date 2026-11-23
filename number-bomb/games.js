@@ -52,5 +52,15 @@ window.GAMES = [
     url: 'truth-dare/',
     meta: ['2 人以上', '聚会喝酒', '手机可玩'],
     accent: '#ff3d6e'
+  },
+  {
+    id: 'couple-wheel',
+    name: '贴贴转盘',
+    icon: '🎡',
+    tagline: '转到什么做什么，坐着就能贴贴',
+    desc: '两个人一部手机，点一下转盘，转到哪格就做哪格，全是坐着能做的贴贴动作。不想做就喝半杯。',
+    url: 'couple-wheel/',
+    meta: ['2 人', '坐着玩', '不用联机'],
+    accent: '#ff5c9d'
   }
 ];

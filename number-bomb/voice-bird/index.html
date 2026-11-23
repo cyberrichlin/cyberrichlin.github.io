@@ -113,7 +113,7 @@ td:last-child,th:last-child{text-align:right}
   <div class="card" style="margin-top:0">
     <div class="score"><span class="chip" id="turn-name">—</span><span class="chip">距离 <b id="score-now">0</b> 米</span><span class="chip">穿墙 <b id="pipes-now">0</b></span><span class="chip" id="diff-now">中 · 1倍</span></div>
     <div class="muted" id="turn-status" style="text-align:center;margin-top:8px">—</div>
-    <button class="btn primary big-start" data-action="my-start" id="btn-big-start">▶ 开始游戏</button>
+    <button class="btn big-start" data-action="my-start" id="btn-big-start">▶ 开始游戏</button>
     <canvas id="cv" width="360" height="560"></canvas>
     <div id="mic-box">
       <div class="meter"><i id="meter-fill"></i></div>
@@ -188,7 +188,7 @@ var S={
   role:null, peer:null, code:'', myNum:0, myName:'',
   host:null, pub:null, conns:{}, hostConn:null,
   cal:{low:130,high:440}, smoothFreq:0, lastFreqAt:0, testRms:0,
-  micOn:false, micTested:false, dragMode:false,
+  micOn:false, micTested:false, dragMode:false, dragging:false,
   local:null, playing:false, raf:0, audio:null, noSoundAt:0, diff:'mid'
 };
 window.__VBDBG={S:S,DIFFS:DIFFS,mapFreqToY:mapFreqToY,autoPitch:autoPitch,runStep:runStep,crashStep:crashStep,draw:draw,meters:meters,newRun:newRun};
@@ -216,6 +216,9 @@ function runStep(run,freq,mult){
   else{run.targetY=Math.min(GROUND-40,run.targetY+6)}
   run.y+=(run.targetY-run.y)*0.22;
   if(run.y<24)run.y=24; if(run.y>GROUND-20)run.y=GROUND-20;
+  /* 掉到地上：要一直飞才能前进，落到地上不动（没声音、没在拖）2.5 秒就判掉地 */
+  if(run.y>=GROUND-44&&!(freq&&freq>0)&&!S.dragging){run.groundT=(run.groundT||0)+1}else{run.groundT=0}
+  if(run.groundT>150&&!run.crash){run.crash={t:0,y:run.y,poopY:null,poopVy:0,slideY:null,done:false,pipeX:null,ground:true};run.alive=false}
   run.spawn++;
   run.since+=2.0*mult;
   if(run.since>=run.nextGap){run.since=0;var sd=Math.random()<0.5?'top':'bottom';var hh=80+Math.random()*232;run.pipes.push({x:W+10,side:sd,h:hh,passed:false});run.nextGap=300+Math.random()*150}
@@ -511,7 +514,8 @@ function myStart(){
 function myCrash(){
   if(!S.playing)return;S.playing=false;cancelAnimationFrame(S.raf);
   var score=S.local?meters(S.local):0;
-  toast('撞墙了！飞了 '+score+' 米');
+  var ground=S.local&&S.local.crash&&S.local.crash.ground;
+  toast((ground?'掉地上啦！飞了 ':'撞墙了！飞了 ')+score+' 米');
   if(S.role==='solo'){
     S.pub={phase:'done',players:[{num:1,name:S.myName,online:true}],turnNum:1,turnIndex:0,scores:{1:score},live:null,code:''};
     render();return;
@@ -622,7 +626,7 @@ document.addEventListener('click',function(e){
   else if(act==='my-start')myStart();
   else if(act==='give-up')myGiveUp();
   else if(act==='back-lobby')backLobby();
-  else if(act==='again'){if(S.role==='host'){var ps=S.host.players.slice().reverse();S.host.players=ps;hostStartMatch()}else toast('等房主再开一局')}
+  else if(act==='again'){if(S.role==='solo'){doSolo();return}if(S.role==='host'){var ps=S.host.players.slice().reverse();S.host.players=ps;hostStartMatch()}else toast('等房主再开一局')}
   else if(act==='cal-low'){if(S.smoothFreq){S.cal.low=Math.round(S.smoothFreq);toast('低音已记为 '+S.cal.low+'Hz')}else toast('先点“测一下麦克风”，哼一声低音再点')}
   else if(act==='cal-high'){if(S.smoothFreq){S.cal.high=Math.round(S.smoothFreq);toast('高音已记为 '+S.cal.high+'Hz')}else toast('先点“测一下麦克风”，哼一声高音再点')}
 });
@@ -635,8 +639,11 @@ document.addEventListener('click',function(e){
     S.local.targetY=Math.max(30,Math.min(GROUND-40,y));
     S.dragMode=true;
   }
-  cv.addEventListener('pointerdown',function(ev){setY(ev)});
+  cv.addEventListener('pointerdown',function(ev){S.dragging=true;setY(ev)});
   cv.addEventListener('pointermove',function(ev){if(ev.buttons)setY(ev)});
+  cv.addEventListener('pointerup',function(){S.dragging=false});
+  cv.addEventListener('pointercancel',function(){S.dragging=false});
+  cv.addEventListener('pointerleave',function(){S.dragging=false});
 })();
 (function(){
   var m=(location.search||'').match(/room=(\d{3})/);
